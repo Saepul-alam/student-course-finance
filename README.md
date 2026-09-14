@@ -22,7 +22,8 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 - ✅ **Export Laporan PDF** - Absensi, Tabungan, Per Murid, Per Kelas
 - ✅ **Notifikasi Email** - Kirim info absensi & transaksi ke email orang tua
 - ✅ **Notifikasi WhatsApp** - Via Fonnte API, format pesan rapi + emoji
-- ✅ **Login Gmail** - Akses terbatas via allowlist email
+- ✅ **Login Gmail** - Akses terbatas via sheet **Users** + seed `ALLOWED_USERS`
+- ✅ **Manajemen User** - Tambah/edit/hapus user login dari web app (khusus Admin)
 - ✅ **Laporan Otomatis Bulanan** - PDF terkirim otomatis tiap tanggal 1 + arsip Drive
 - ✅ **Grafik Tren Saldo** - Line chart 7/30/90 hari di dashboard (SVG, tanpa library)
 
@@ -38,9 +39,7 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 | File | Keterangan |
 |------|------------|
 | `Code.gs` | Backend logic semua fitur |
-| `index.html` | Form UI (dialog dalam spreadsheet) |
-| `index_web.html` | UI Web App (responsif, via URL) |
-| `login.html` | Halaman login web app |
+| `index.html` | UI Web App lengkap + halaman login dalam satu file (responsif, via URL) |
 | `README.md` | Dokumentasi ini |
 
 > 📝 **Catatan:** Project ini tidak menyertakan file `appsscript.json`. Apps Script
@@ -78,20 +77,11 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 2. Beri nama persis: `index` (Apps Script otomatis menambahkan `.html`)
 3. Hapus isi default, paste **seluruh isi** file `index.html` dari project ini
 
-**Langkah 5: Buat File `index_web.html`**
-1. Klik **+** → **HTML** lagi
-2. Beri nama persis: `index_web`
-3. Paste **seluruh isi** file `index_web.html`
+> ⚠️ **Penting:** Cukup **satu file HTML** bernama persis `index` (huruf kecil, tanpa
+> spasi) karena dipanggil dari kode. Halaman login sudah otomatis menyatu di dalam
+> file ini — tampil sebagai overlay jika email belum terdaftar di `ALLOWED_USERS`.
 
-**Langkah 6: Buat File `login.html`**
-1. Klik **+** → **HTML** lagi
-2. Beri nama persis: `login`
-3. Paste **seluruh isi** file `login.html`
-
-> ⚠️ **Penting:** Nama file harus persis sama (huruf kecil, tanpa spasi) karena dipanggil dari kode:
-> `index` → dialog spreadsheet, `index_web` → web app, `login` → halaman login.
-
-**Langkah 7: Set Timezone Jakarta (Pengganti appsscript.json)**
+**Langkah 5: Set Timezone Jakarta (Pengganti appsscript.json)**
 1. Di editor, klik ikon **⚙️ Project Settings** (roda gigi, sidebar kiri)
 2. Scroll ke bagian **General settings**
 3. Pada dropdown **Time zone**, pilih **(GMT+07:00) Jakarta**
@@ -108,7 +98,7 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 
 ### 📌 Bagian 3 — Konfigurasi Awal
 
-**Langkah 8: Daftarkan Email Admin**
+**Langkah 6: Daftarkan Email Admin**
 1. Buka `Code.gs`, cari baris berikut (ada di bagian `AUTHENTICATION`):
    ```javascript
    const ALLOWED_USERS = ['email@sekolah.com', 'admin@sekolah.com'];
@@ -119,11 +109,14 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
    ```
 3. Simpan
 
-> 💡 Email di sini = akun Google yang dipakai login ke web app. Bisa lebih dari satu.
+> 💡 `ALLOWED_USERS` hanya **seed awal** — saat `setupSheets` dijalankan, email di dalamnya
+> otomatis masuk sheet **Users** berperan **Admin**. Setelah itu, kelola user (tambah guru,
+> nonaktifkan, ganti peran) langsung dari web app → menu **👥 Users**, tanpa edit kode lagi.
+> Jika sheet Users kosong, sistem fallback ke `ALLOWED_USERS` agar tidak pernah terkunci.
 
 ### 📌 Bagian 4 — Jalankan Setup & Beri Izin
 
-**Langkah 9: Run Pertama Kali (Otorisasi)**
+**Langkah 7: Run Pertama Kali (Otorisasi)**
 1. Di editor, pilih fungsi `setupSheets` dari dropdown (sebelah tombol ▶️ **Run**)
 2. Klik **▶️ Run**
 3. Popup **Authorization required** muncul → klik **Review permissions**
@@ -132,16 +125,17 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
    > ⚠️ Ini normal! Peringatan muncul karena script buatan sendiri belum diverifikasi Google.
    > Script ini hanya mengakses spreadsheet milikmu sendiri.
 6. Centang semua izin yang diminta → klik **Allow**
-7. Run selesai → cek spreadsheet: 7 sheet baru otomatis dibuat
+7. Run selesai → cek spreadsheet: **8 sheet** baru otomatis dibuat
 
-**Langkah 10: Verifikasi di Spreadsheet**
+**Langkah 8: Verifikasi di Spreadsheet**
 1. Kembali ke tab spreadsheet, refresh halaman (F5)
 2. Menu **📚 LMS & Tabungan** muncul di toolbar (paling kanan)
-3. Sheet yang dibuat otomatis: `Murid`, `Kelas`, `Absensi`, `Progres`, `Tabungan`, `Transaksi`, `Settings`
+3. Sheet yang dibuat otomatis: `Murid`, `Kelas`, `Absensi`, `Progres`, `Tabungan`, `Transaksi`, `Settings`, `Users`
+   > Sheet **Users** otomatis terisi email dari `ALLOWED_USERS` sebagai Admin — ini pintu masuk pertamamu.
 
 ### 📌 Bagian 5 — Deploy Web App (Akses via URL/HP)
 
-**Langkah 11: Deploy**
+**Langkah 9: Deploy**
 1. Di Apps Script editor, klik kanan atas **Deploy** → **New deployment**
 2. Klik ikon ⚙️ di sebelah "Select type" → pilih **Web app**
 3. Isi konfigurasi:
@@ -153,11 +147,12 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 4. Klik **Deploy**
 5. Copy **Web app URL** yang muncul (format: `https://script.google.com/macros/s/AKfycb.../exec`)
 
-> 🔐 Meski akses "Anyone", hanya email di `ALLOWED_USERS` yang bisa login ke aplikasi.
+> 🔐 Meski akses "Anyone", hanya email berstatus **Aktif** di sheet **Users** yang bisa login ke aplikasi.
 
-**Langkah 12: Buka Web App**
+**Langkah 10: Buka Web App**
 1. Paste URL di browser (atau kirim ke HP)
-2. Dashboard LMS & Tabungan tampil
+2. Bila email Google kamu terdaftar di sheet **Users** (status Aktif), dashboard langsung tampil.
+   Jika belum, layar login muncul lebih dulu — masukkan email yang terdaftar.
 3. Selesai! 🎉
 
 > 🔄 **Penting untuk update kode di masa depan:** setiap kali mengubah kode,
@@ -168,8 +163,8 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 
 - [ ] Spreadsheet baru dibuat
 - [ ] `Code.gs` di-paste
-- [ ] File HTML dibuat: `index`, `index_web`, `login`
-- [ ] `ALLOWED_USERS` diganti dengan email kamu
+- [ ] File HTML dibuat: `index` (login sudah menyatu di dalamnya)
+- [ ] `ALLOWED_USERS` diganti dengan email kamu (seed Admin di sheet Users)
 - [ ] Timezone di-set ke **(GMT+07:00) Jakarta** di Project Settings
 - [ ] `setupSheets` di-Run + otorisasi berhasil
 - [ ] Menu **LMS & Tabungan** muncul di spreadsheet
@@ -292,9 +287,9 @@ Saat input absensi/transaksi, centang **💬 Kirim notifikasi WhatsApp** dan pes
 | Error `Script function not found: setupSheets` | Pastikan `Code.gs` ter-paste utuh, lalu jalankan `setupSheets` dari dropdown editor |
 | Peringatan "unverified app / unsafe" | Normal untuk script sendiri — klik **Advanced** → **Go to project (unsafe)** → **Allow** |
 | Timezone belum di-set / laporan otomatis jam-nya salah | Buka **Project Settings → General settings → Time zone** → pilih **(GMT+07:00) Jakarta** |
-| Web app tampil halaman kosong / error | Pastikan 3 file HTML bernama persis `index`, `index_web`, `login` (lihat sidebar editor) |
+| Web app tampil halaman kosong / error | Pastikan file HTML bernama persis `index` (lihat sidebar editor) |
 | Web app masih kode lama setelah edit | **Deploy → Manage deployments → Edit → New version** |
-| Login ditolak "email tidak terdaftar" | Tambahkan email tersebut ke `ALLOWED_USERS` di `Code.gs`, simpan, lalu **New version** deploy |
+| Login ditolak "email tidak terdaftar" | Buka sheet **Users** → tambah baris email tsb (Status: Aktif), atau masukkan ke `ALLOWED_USERS` lalu jalankan ulang `setupSheets` — tunggu ±2 menit (cache) |
 | WhatsApp tidak terkirim | Cek token Fonnte masih aktif (QR tidak logout), dan status **Aktif** di menu WhatsApp web app |
 | Laporan otomatis tidak jalan | Cek sheet **Log Laporan** untuk alasan gagal; pastikan email penerima terisi & trigger aktif |
 

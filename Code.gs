@@ -11,7 +11,8 @@ const CONFIG = {
   PROGRESS_SHEET: 'Progres',
   SAVINGS_SHEET: 'Tabungan',
   TRANSACTIONS_SHEET: 'Transaksi',
-  SETTINGS_SHEET: 'Settings'
+  SETTINGS_SHEET: 'Settings',
+  USERS_SHEET: 'Users'
 };
 
 // ==================== ON OPEN MENU ====================
@@ -19,24 +20,22 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('LMS & Tabungan')
     .addItem('🏠 Dashboard', 'showDashboard')
+    .addItem('🌐 Buka Web App', 'showOpenWebApp')
     .addSeparator()
     .addSubMenu(ui.createMenu('Murid')
-      .addItem('➕ Tambah Murid', 'showAddStudent')
-      .addItem('📋 Daftar Murid', 'showStudentList')
-      .addItem('✏️ Edit Murid', 'showEditStudent'))
+      .addItem('📋 Daftar Murid', 'showStudentList'))
     .addSubMenu(ui.createMenu('Kelas')
-      .addItem('➕ Tambah Kelas', 'showAddClass')
       .addItem('📋 Daftar Kelas', 'showClassList'))
+    .addSubMenu(ui.createMenu('User')
+      .addItem('👥 Daftar User', 'showUserList'))
     .addSeparator()
     .addSubMenu(ui.createMenu('Absensi')
       .addItem('📝 Absensi Hari Ini', 'showAttendance')
       .addItem('📊 Riwayat Absensi', 'showAttendanceHistory'))
     .addSubMenu(ui.createMenu('Progres')
-      .addItem('📈 Update Progres', 'showProgress')
       .addItem('📊 Riwayat Progres', 'showProgressHistory'))
     .addSeparator()
     .addSubMenu(ui.createMenu('Tabungan')
-      .addItem('💰 Tambah Transaksi', 'showTransaction')
       .addItem('📊 Riwayat Transaksi', 'showTransactionHistory')
       .addItem('🏦 Cek Saldo', 'showBalanceCheck'))
     .addSeparator()
@@ -52,6 +51,35 @@ function onOpen() {
     .addItem('⚙️ Setup Awal', 'showSetup')
     .addItem('ℹ️ Bantuan', 'showHelp')
     .addToUi();
+}
+
+/**
+ * Dialog kecil berisi link ke web app (dipakai beberapa menu).
+ */
+function showOpenWebApp() {
+  const url = getWebAppUrl();
+  const html = `
+    <div style="padding:20px; font-family:Arial; text-align:center;">
+      <h2 style="margin-top:0;">🌐 LMS & Tabungan Web App</h2>
+      <p style="color:#666;">Semua fitur input (murid, kelas, absensi, transaksi,<br>
+      laporan, WhatsApp) ada di web app:</p>
+      <p><a href="${url}" target="_blank" style="display:inline-block; padding:12px 24px; background:#1a73e8; color:white; text-decoration:none; border-radius:8px; font-weight:bold;">🚀 Buka Web App</a></p>
+      <p style="font-size:0.8rem; color:#999; margin-top:15px; word-break:break-all;">${url}</p>
+    </div>
+  `;
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(420).setHeight(280), 'Buka Web App');
+}
+
+/**
+ * Ambil URL web app. Jika belum ada deployment, beri petunjuk.
+ */
+function getWebAppUrl() {
+  try {
+    const url = ScriptApp.getService().getUrl();
+    return url || '(Belum di-deploy — buka Apps Script editor → Deploy → New deployment → Web app)';
+  } catch (e) {
+    return '(Belum di-deploy — buka Apps Script editor → Deploy → New deployment → Web app)';
+  }
 }
 
 // ==================== SETUP SHEETS ====================
@@ -124,9 +152,27 @@ function setupSheets() {
     settingsSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#607D8B').setFontColor('white');
   }
 
+  // Create Users sheet (daftar email yang boleh login web app)
+  if (!ss.getSheetByName(CONFIG.USERS_SHEET)) {
+    const usersSheet = ss.insertSheet(CONFIG.USERS_SHEET);
+    usersSheet.getRange(1, 1, 1, 5).setValues([
+      ['Email', 'Nama', 'Peran', 'Status', 'Dibuat']
+    ]);
+    usersSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#795548').setFontColor('white');
+
+    // Seed awal: isi dgn email di ALLOWED_USERS sebagai Admin agar sistem tidak terkunci
+    const seed = ALLOWED_USERS
+      .filter(e => e && e.indexOf('@') !== -1)
+      .map(e => [e, '', 'Admin', 'Aktif', new Date()]);
+    if (seed.length > 0) {
+      usersSheet.getRange(2, 1, seed.length, 5).setValues(seed);
+    }
+  }
+
   // Freeze header rows
   [CONFIG.STUDENTS_SHEET, CONFIG.CLASSES_SHEET, CONFIG.ATTENDANCE_SHEET,
-   CONFIG.PROGRESS_SHEET, CONFIG.SAVINGS_SHEET, CONFIG.TRANSACTIONS_SHEET
+   CONFIG.PROGRESS_SHEET, CONFIG.SAVINGS_SHEET, CONFIG.TRANSACTIONS_SHEET,
+   CONFIG.USERS_SHEET
   ].forEach(sheetName => {
     ss.getSheetByName(sheetName).setFrozenRows(1);
   });
@@ -135,11 +181,17 @@ function setupSheets() {
 }
 
 function showSetup() {
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Setup LMS & Tabungan')
-    .setWidth(500)
-    .setHeight(400);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Setup Awal Sistem');
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    '⚙️ Setup Awal Sistem',
+    'Script akan membuat semua sheet (Murid, Kelas, Absensi, Progres, Tabungan, Transaksi, Settings).\n\nSheet yang sudah ada TIDAK akan diubah. Lanjutkan?',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (result === ui.Button.YES) {
+    const message = setupSheets();
+    ui.alert(message);
+  }
 }
 
 // ==================== STUDENT MANAGEMENT ====================
@@ -147,6 +199,9 @@ function addStudent(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.STUDENTS_SHEET);
   const students = sheet.getDataRange().getValues();
+
+  // Write-through: invalidasi cache dulu sebelum tulis
+  invalidateDataCache();
 
   // Generate ID Murid
   const studentId = genId('S');
@@ -191,7 +246,7 @@ function getStudents() {
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
 
-  const classes = getClasses();
+  const classes = getCachedClasses();
   const classMap = {};
   classes.forEach(c => classMap[c.id] = c.nama);
 
@@ -223,25 +278,16 @@ function updateStudent(id, data) {
       values[i][5] = data.noHP || values[i][5];
       values[i][6] = data.status || values[i][6];
       sheet.getRange(i + 1, 1, 1, values[i].length).setValues([values[i]]);
+      invalidateDataCache();
       return { success: true, message: 'Data murid berhasil diperbarui!' };
     }
   }
   return { success: false, message: 'Murid tidak ditemukan!' };
 }
 
-function showAddStudent() {
-  const classes = getClasses();
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Tambah Murid')
-    .setWidth(500)
-    .setHeight(600);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Tambah Murid Baru');
-  // Store classes for form
-  PropertiesService.getUserProperties().setProperty('currentClasses', JSON.stringify(classes));
-}
-
 function showStudentList() {
-  const students = getStudents();
+  const students = getCachedStudents();
+  const balanceMap = getBalanceMap();
   let html = '<div style="padding: 15px;">';
   html += '<h2>Daftar Murid</h2>';
   html += '<table style="width:100%; border-collapse: collapse; margin-top: 15px;">';
@@ -250,7 +296,7 @@ function showStudentList() {
   html += '</tr>';
 
   students.forEach((s, i) => {
-    const balance = getBalance(s.savingsId);
+    const balance = balanceMap[s.savingsId] || 0;
     html += `<tr style="border-bottom:1px solid #ddd;">
       <td style="padding:8px;">${i + 1}</td>
       <td style="padding:8px; font-weight:bold;">${s.nama}</td>
@@ -294,11 +340,11 @@ function showStudentList() {
 }
 
 function getStudent(id) {
-  const students = getStudents();
+  const students = getCachedStudents();
   const student = students.find(s => s.id === id);
   if (!student) return null;
 
-  student.saldo = getBalance(student.savingsId);
+  student.saldo = getBalanceMap()[student.savingsId] || 0;
   student.transactions = getTransactionsByStudent(id);
   return student;
 }
@@ -313,14 +359,6 @@ function getBalance(savingsId) {
     }
   }
   return 0;
-}
-
-function showEditStudent() {
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Edit Murid')
-    .setWidth(500)
-    .setHeight(600);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Edit Data Murid');
 }
 
 // ==================== CLASS MANAGEMENT ====================
@@ -342,6 +380,7 @@ function addClass(data) {
   ];
 
   sheet.appendRow(newRow);
+  invalidateDataCache();
   return { success: true, classId, message: 'Kelas berhasil ditambahkan!' };
 }
 
@@ -361,16 +400,8 @@ function getClasses() {
   }));
 }
 
-function showAddClass() {
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Tambah Kelas')
-    .setWidth(500)
-    .setHeight(500);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Tambah Kelas Baru');
-}
-
 function showClassList() {
-  const classes = getClasses();
+  const classes = getCachedClasses();
   let html = '<div style="padding: 15px;">';
   html += '<h2>Daftar Kelas</h2>';
   html += '<table style="width:100%; border-collapse: collapse; margin-top: 15px;">';
@@ -399,6 +430,139 @@ function showClassList() {
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(700).setHeight(400), 'Daftar Kelas');
 }
 
+function showUserList() {
+  const users = getCachedUsers();
+  let html = '<div style="padding: 15px;">';
+  html += '<h2>Daftar User (Akses Web App)</h2>';
+  html += '<table style="width:100%; border-collapse: collapse; margin-top: 15px;">';
+  html += '<tr style="background:#795548; color:white;">';
+  html += '<th>No</th><th>Email</th><th>Nama</th><th>Peran</th><th>Status</th>';
+  html += '</tr>';
+
+  users.forEach((u, i) => {
+    html += `<tr style="border-bottom:1px solid #ddd;">
+      <td style="padding:8px;">${i + 1}</td>
+      <td style="padding:8px;">${u.email}</td>
+      <td style="padding:8px;">${u.nama || '-'}</td>
+      <td style="padding:8px;">${u.peran}</td>
+      <td style="padding:8px; color:${u.status === 'Aktif' ? 'green' : 'red'};">${u.status}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+  html += '<p style="margin-top:15px; color:#666; font-size:13px;">💡 Tambah/edit/hapus user lewat web app → menu 👥 Users (khusus Admin).</p>';
+  html += '</div>';
+
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(700).setHeight(400), 'Daftar User');
+}
+
+// ==================== USERS (LOGIN SHEET) ====================
+/**
+ * Ambil semua user dari sheet Users.
+ */
+function getUsers() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(CONFIG.USERS_SHEET);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1).filter(r => r[0])
+    .map(r => ({
+      email: String(r[0]).trim(),
+      nama: r[1],
+      peran: r[2] || 'Guru',
+      status: r[3] || 'Aktif',
+      dibuat: r[4]
+    }));
+}
+
+/**
+ * Tambah user baru. Khusus Admin.
+ */
+function addUser(data) {
+  if (!isAdminUser()) return { success: false, message: 'Hanya Admin yang bisa menambah user!' };
+
+  const email = (data.email || '').trim().toLowerCase();
+  if (!email || email.indexOf('@') === -1) {
+    return { success: false, message: 'Email tidak valid!' };
+  }
+
+  const users = getCachedUsers();
+  if (users.some(u => (u.email || '').toLowerCase() === email)) {
+    return { success: false, message: 'Email sudah terdaftar!' };
+  }
+
+  const peran = (data.peran === 'Admin') ? 'Admin' : 'Guru';
+  const status = (data.status === 'Nonaktif') ? 'Nonaktif' : 'Aktif';
+
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.USERS_SHEET)
+    .appendRow([email, data.nama || '', peran, status, new Date()]);
+  invalidateDataCache();
+
+  return { success: true, message: `User ${email} berhasil ditambahkan!` };
+}
+
+/**
+ * Update user (cari by email lama). Khusus Admin.
+ * Jika email diubah, cukup tulis ulang kolom Email di baris yang sama.
+ */
+function updateUser(oldEmail, data) {
+  if (!isAdminUser()) return { success: false, message: 'Hanya Admin yang bisa mengubah user!' };
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.USERS_SHEET);
+  const values = sheet.getDataRange().getValues();
+  const target = String(oldEmail || '').trim().toLowerCase();
+
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toLowerCase() === target) {
+      if (data.email) values[i][0] = String(data.email).trim().toLowerCase();
+      if (data.nama !== undefined) values[i][1] = data.nama;
+      if (data.peran) values[i][2] = (data.peran === 'Admin') ? 'Admin' : 'Guru';
+      if (data.status) values[i][3] = (data.status === 'Nonaktif') ? 'Nonaktif' : 'Aktif';
+      sheet.getRange(i + 1, 1, 1, values[i].length).setValues([values[i]]);
+      invalidateDataCache();
+      return { success: true, message: 'User berhasil diperbarui!' };
+    }
+  }
+  return { success: false, message: 'User tidak ditemukan!' };
+}
+
+/**
+ * Hapus user by email. Khusus Admin.
+ * Tolak hapus diri sendiri & tolak menghapus Admin terakhir
+ * (mencegah tidak ada yang bisa mengelola user).
+ */
+function deleteUser(email) {
+  if (!isAdminUser()) return { success: false, message: 'Hanya Admin yang bisa menghapus user!' };
+
+  const me = getCurrentUser().trim().toLowerCase();
+  const target = String(email || '').trim().toLowerCase();
+  if (target === me) {
+    return { success: false, message: 'Tidak bisa menghapus akun sendiri!' };
+  }
+
+  const users = getCachedUsers();
+  const targetUser = users.find(u => (u.email || '').toLowerCase() === target);
+  if (targetUser && targetUser.peran === 'Admin') {
+    const activeAdmins = users.filter(u =>
+      u.peran === 'Admin' && (u.status || '').toLowerCase() === 'aktif');
+    if (activeAdmins.length <= 1) {
+      return { success: false, message: 'Tidak bisa menghapus Admin terakhir!' };
+    }
+  }
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.USERS_SHEET);
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toLowerCase() === target) {
+      sheet.deleteRow(i + 1);
+      invalidateDataCache();
+      return { success: true, message: 'User berhasil dihapus!' };
+    }
+  }
+  return { success: false, message: 'User tidak ditemukan!' };
+}
+
 function getStudentCountInClass(classId) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.STUDENTS_SHEET);
   const data = sheet.getDataRange().getValues();
@@ -417,6 +581,7 @@ function deleteClass(id) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == id) {
       classesSheet.deleteRow(i + 1);
+      invalidateDataCache();
       return { success: true, message: 'Kelas berhasil dihapus!' };
     }
   }
@@ -431,6 +596,7 @@ function deleteStudent(id) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == id) {
       sheet.deleteRow(i + 1);
+      invalidateDataCache();
       return { success: true, message: 'Murid berhasil dihapus!' };
     }
   }
@@ -500,7 +666,7 @@ function getAttendanceToday() {
 }
 
 function showAttendance() {
-  const students = getStudents();
+  const students = getCachedStudents();
   const today = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   let html = '<div style="padding: 15px;">';
@@ -545,7 +711,7 @@ function showAttendance() {
 function showAttendanceHistory() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.ATTENDANCE_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
 
@@ -618,17 +784,8 @@ function getProgressByStudent(studentId) {
     })).sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
 }
 
-function showProgress() {
-  const students = getStudents();
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Update Progres')
-    .setWidth(500)
-    .setHeight(600);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Update Progres Murid');
-}
-
 function showProgressHistory() {
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
 
@@ -686,9 +843,14 @@ function createSavingsAccount(id, studentId, studentName, initialBalance) {
 }
 
 function addTransaction(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const transactionsSheet = ss.getSheetByName(CONFIG.TRANSACTIONS_SHEET);
-  const savingsSheet = ss.getSheetByName(CONFIG.SAVINGS_SHEET);
+  // Lock: cegah saldo rusak jika 2 transaksi masuk bersamaan
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const transactionsSheet = ss.getSheetByName(CONFIG.TRANSACTIONS_SHEET);
+    const savingsSheet = ss.getSheetByName(CONFIG.SAVINGS_SHEET);
 
   // Validate savings account
   const savingsData = savingsSheet.getDataRange().getValues();
@@ -739,6 +901,7 @@ function addTransaction(data) {
   // Update totals & saldo di sheet Tabungan
   // Kolom: C=Saldo Awal, D=Total Setoran, E=Total Penarikan, F=Saldo Saat Ini
   // (Saldo Awal tidak boleh diubah oleh transaksi!)
+  invalidateDataCache();
   if (data.jenis === 'Setoran') {
     const currentDeposit = Number(savingsData[savingsRow - 1][3]) || 0;
     savingsSheet.getRange(savingsRow, 4).setValue(currentDeposit + amount);
@@ -766,6 +929,9 @@ function addTransaction(data) {
     message: `${data.jenis} berhasil! Saldo saat ini: Rp ${formatCurrency(newBalance)}.${notifMsg}`,
     newBalance
   };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function getTransactionsByStudent(studentId) {
@@ -802,17 +968,8 @@ function getTransactionsByStudent(studentId) {
     })).sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
 }
 
-function showTransaction() {
-  const students = getStudents().filter(s => s.status === 'Aktif');
-  const html = HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Tambah Transaksi Tabungan')
-    .setWidth(500)
-    .setHeight(600);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Tambah Transaksi Tabungan');
-}
-
 function showTransactionHistory() {
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
 
@@ -854,7 +1011,8 @@ function showTransactionHistory() {
 }
 
 function showBalanceCheck() {
-  const students = getStudents();
+  const students = getCachedStudents();
+  const balanceMap = getBalanceMap();
   let html = '<div style="padding: 15px;">';
   html += '<h2>Cek Saldo Tabungan</h2>';
 
@@ -863,7 +1021,7 @@ function showBalanceCheck() {
   html += '<th>No</th><th>Nama Murid</th><th>Rekening</th><th>Saldo</th><th>Status</th></tr>';
 
   students.forEach((s, i) => {
-    const balance = getBalance(s.savingsId);
+    const balance = balanceMap[s.savingsId] || 0;
     html += `<tr style="border-bottom:1px solid #ddd;">
       <td style="padding:8px;">${i + 1}</td>
       <td style="padding:8px; font-weight:bold;">${s.nama}</td>
@@ -882,8 +1040,8 @@ function showBalanceCheck() {
 
 // ==================== DASHBOARD ====================
 function showDashboard() {
-  const students = getStudents();
-  const classes = getClasses();
+  const students = getCachedStudents();
+  const classes = getCachedClasses();
   const todayAttendance = getAttendanceToday();
   const totalTransactions = getTotalTransactions();
   const totalDeposits = getTotalDeposits();
@@ -925,7 +1083,7 @@ function showDashboard() {
   html += '<h3 style="color:#333; margin-top:20px;">⚡ Aksi Cepat</h3>';
   html += '<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">';
   html += '<button onclick="showAttendance()" style="padding:12px; background:#4285F4; color:white; border:none; cursor:pointer; border-radius:5px;">📝 Absensi Hari Ini</button>';
-  html += '<button onclick="showTransaction()" style="padding:12px; background:#0F9D58; color:white; border:none; cursor:pointer; border-radius:5px;">💰 Transaksi Tabungan</button>';
+  html += '<button onclick="openWebApp()" style="padding:12px; background:#0F9D58; color:white; border:none; cursor:pointer; border-radius:5px;">💰 Transaksi Tabungan</button>';
   html += '<button onclick="showStudentList()" style="padding:12px; background:#9C27B0; color:white; border:none; cursor:pointer; border-radius:5px;">📋 Daftar Murid</button>';
   html += '</div>';
 
@@ -970,8 +1128,8 @@ function showDashboard() {
   html += '</div>';
 
   html += '<script>function showAttendance(){google.script.run.showAttendance();google.script.host.close();}<\/script>';
-  html += '<script>function showTransaction(){google.script.run.showTransaction();google.script.host.close();}<\/script>';
   html += '<script>function showStudentList(){google.script.run.showStudentList();google.script.host.close();}<\/script>';
+  html += '<script>function openWebApp(){google.script.run.withSuccessHandler(function(u){window.open(u, "_blank");}).getWebAppUrl();}<\\/script>';
 
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), 'Dashboard LMS & Tabungan');
 }
@@ -1077,6 +1235,74 @@ function genId(prefix) {
 
 function formatCurrency(amount) {
   return Number(amount).toLocaleString('id-ID');
+}
+
+// ==================== CACHE LAYER ====================
+// Data murid/kelas dibaca terus-menerus dari banyak fungsi. CacheService menyimpan
+// hasil baca sheet selama 2 menit → panggilan berikutnya tidak perlu baca sheet lagi.
+// Cache otomatis dibuang (invalidate) setiap kali data diubah (add/update/delete).
+const CACHE_TTL = 120; // detik
+
+function cacheGet(key) {
+  const cached = CacheService.getScriptCache().get(key);
+  return cached ? JSON.parse(cached) : null;
+}
+
+function cachePut(key, value) {
+  try {
+    CacheService.getScriptCache().put(key, JSON.stringify(value), CACHE_TTL);
+  } catch (e) {
+    // Cache penuh atau value terlalu besar — abaikan, jangan sampai gagalkan request
+  }
+}
+
+function invalidateDataCache() {
+  CacheService.getScriptCache().removeAll(['students', 'classes', 'savings_accounts', 'users']);
+}
+
+function getCachedStudents() {
+  let students = cacheGet('students');
+  if (!students) {
+    students = getStudents();
+    cachePut('students', students);
+  }
+  return students;
+}
+
+function getCachedClasses() {
+  let classes = cacheGet('classes');
+  if (!classes) {
+    classes = getClasses();
+    cachePut('classes', classes);
+  }
+  return classes;
+}
+
+function getCachedUsers() {
+  let users = cacheGet('users');
+  if (!users) {
+    users = getUsers();
+    cachePut('users', users);
+  }
+  return users;
+}
+
+/**
+ * Ambil SEMUA saldo sekaligus (1x baca sheet Tabungan).
+ * Menggantikan pola N+1: getBalance() per murid = baca sheet berulang-ulang.
+ */
+function getBalanceMap() {
+  let balances = cacheGet('savings_accounts');
+  if (!balances) {
+    const data = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(CONFIG.SAVINGS_SHEET).getDataRange().getValues();
+    balances = {};
+    data.slice(1).forEach(row => {
+      if (row[0]) balances[row[0]] = Number(row[5]) || 0;
+    });
+    cachePut('savings_accounts', balances);
+  }
+  return balances;
 }
 
 // ==================== SCHEDULED MONTHLY REPORTS ====================
@@ -1734,10 +1960,6 @@ function getSavingsTrend(days) {
 }
 
 // ==================== REPORTS ENTRY POINTS ====================
-function loadReports() {
-  return getAllTransactions();
-}
-
 // Web app endpoints untuk laporan terjadwal
 function getReportSettings() {
   const status = getTriggerStatus();
@@ -1766,40 +1988,72 @@ function triggerRemoveMonthly() {
 }
 
 // ==================== AUTHENTICATION ====================
-const ALLOWED_USERS = ['email@sekolah.com', 'admin@sekolah.com']; // Ganti dengan email yang diizinkan
+// Sumber kebenaran user: sheet "Users" (email terdaftar & Status=Aktif).
+// ALLOWED_USERS hanya menjadi seed awal Admin saat setupSheets dijalankan —
+// setelah itu kelola user lewat web app (menu 👥 Users), bukan lewat kode.
+const ALLOWED_USERS = ['email@sekolah.com', 'admin@sekolah.com']; // ← seed awal, ganti dgn email kamu
 
+/**
+ * doGet — selalu menyajikan 'index' (aplikasi + overlay login dalam satu file).
+ * Status otorisasi di-inject ke template: jika belum terotorisasi, index
+ * menampilkan layar login di atas aplikasi.
+ */
 function doGet(request) {
-  const user = request.parameter.user || '';
-  const loginParam = request.parameter.login;
-  const loggedIn = checkAuth(user);
-  
-  let html = HtmlService.createHtmlOutputFromFile('index_web')
+  const loggedIn = isLoggedIn();
+
+  const template = HtmlService.createTemplateFromFile('index');
+  template.loggedIn = loggedIn;
+
+  return template.evaluate()
     .setTitle('LMS & Tabungan')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  
-  // Jika tidak login, redirect ke halaman login
-  if (loginParam === 'true' && !loggedIn) {
-    html = HtmlService.createHtmlOutputFromFile('login')
-      .setTitle('Login - LMS & Tabungan')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-  
-  return html;
-}
-
-function checkAuth(email) {
-  if (!email) return false;
-  // Cek apakah email ada di allow list
-  return ALLOWED_USERS.some(u => u.toLowerCase() === email.toLowerCase());
 }
 
 function getCurrentUser() {
   return Session.getActiveUser().getEmail();
 }
 
+/**
+ * Email user aktif dari sheet Users (cache 2 menit).
+ * Fallback: jika sheet Users kosong/belum ada, pakai ALLOWED_USERS
+ * agar sistem tidak pernah terkunci total.
+ */
+function getActiveUserEmails() {
+  const users = getCachedUsers();
+  const emails = (users || [])
+    .filter(u => (u.status || '').toLowerCase() === 'aktif')
+    .map(u => (u.email || '').trim().toLowerCase())
+    .filter(e => e);
+  if (emails.length === 0) {
+    return ALLOWED_USERS.map(u => u.toLowerCase());
+  }
+  return emails;
+}
+
+function checkAuth(email) {
+  if (!email) return false;
+  return getActiveUserEmails().indexOf(email.trim().toLowerCase()) !== -1;
+}
+
 function isLoggedIn() {
   const userEmail = getCurrentUser();
-  return ALLOWED_USERS.some(u => u.toLowerCase() === userEmail.toLowerCase());
+  if (!userEmail) return false;
+  return checkAuth(userEmail);
+}
+
+/**
+ * Guard admin: hanya peran "Admin" yang boleh kelola user.
+ * Jika belum ada satu pun Admin aktif di sheet, semua user terotorisasi
+ * dianggap admin (mencegah kondisi tidak ada yang bisa mengelola).
+ */
+function isAdminUser() {
+  const email = getCurrentUser();
+  if (!email || !isLoggedIn()) return false;
+  const users = getCachedUsers();
+  const activeAdmins = (users || []).filter(u =>
+    u.peran === 'Admin' && (u.status || '').toLowerCase() === 'aktif');
+  if (activeAdmins.length === 0) return true;
+  return activeAdmins.some(u => (u.email || '').trim().toLowerCase() === email.trim().toLowerCase());
 }
 
 function verifyLogin(email) {
@@ -2205,8 +2459,10 @@ function generateClassPDFContent(classInfo, students, attendance) {
       <tr><th>No</th><th>Nama</th><th>No HP</th><th>Email</th><th>Status</th><th>Saldo Tabungan</th></tr>
     </thead>
     <tbody>
-      ${students.map((s, i) => {
-        const balance = getBalance(s.savingsId);
+      ${(() => {
+        const balanceMap = getBalanceMap();
+        return students.map((s, i) => {
+        const balance = balanceMap[s.savingsId] || 0;
         return `
           <tr>
             <td style="text-align:center;">${i + 1}</td>
@@ -2217,7 +2473,8 @@ function generateClassPDFContent(classInfo, students, attendance) {
             <td style="text-align:right;">${balance > 0 ? 'Rp ' + balance.toLocaleString('id-ID') : '-'}</td>
           </tr>
         `;
-      }).join('')}
+        }).join('');
+      })()}
     </tbody>
   </table>
   
@@ -2323,10 +2580,100 @@ function sendNotification(type, target) {
 
 // ==================== NOTIFICATION ====================
 
-function getDashboardStats() {
+/**
+ * SEMUA data dashboard dalam SATU panggilan.
+ * Menggantikan double/triple-hop (getDashboardStats → getSavingsAccounts → getStudents)
+ * yang membuat web app lambat — tiap hop = 1 round-trip network + baca ulang semua sheet.
+ * Di sini setiap sheet dibaca HANYA SEKALI.
+ */
+function getDashboardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const students = getStudents();
-  const classes = getClasses();
+
+  // Baca setiap sheet sekali saja
+  const studentRows = ss.getSheetByName(CONFIG.STUDENTS_SHEET).getDataRange().getValues();
+  const classRows = ss.getSheetByName(CONFIG.CLASSES_SHEET).getDataRange().getValues();
+  const attRows = ss.getSheetByName(CONFIG.ATTENDANCE_SHEET).getDataRange().getValues();
+  const savingsRows = ss.getSheetByName(CONFIG.SAVINGS_SHEET).getDataRange().getValues();
+  const txRows = ss.getSheetByName(CONFIG.TRANSACTIONS_SHEET).getDataRange().getValues();
+
+  // Map kelas & murid
+  const classMap = {};
+  classRows.slice(1).forEach(r => { if (r[0]) classMap[r[0]] = r[1]; });
+  const students = studentRows.slice(1).filter(r => r[0]).map(r => ({
+    id: r[0],
+    nama: r[1],
+    kelasId: r[2],
+    kelasNama: classMap[r[2]] || '-',
+    tanggalLahir: r[3],
+    email: r[4],
+    noHP: r[5],
+    status: r[6],
+    tanggalDaftar: r[7],
+    savingsId: r[8]
+  }));
+  const studentMap = {};
+  students.forEach(s => studentMap[s.id] = s.nama);
+
+  // Statistik
+  const today = new Date().toDateString();
+  const todayCount = attRows.slice(1).filter(r => r[2] && new Date(r[2]).toDateString() === today).length;
+  let totalDeposits = 0, totalWithdrawals = 0;
+  txRows.slice(1).forEach(r => {
+    if (r[3] === 'Setoran') totalDeposits += Number(r[4]) || 0;
+    if (r[3] === 'Penarikan') totalWithdrawals += Number(r[4]) || 0;
+  });
+  const classStats = classRows.slice(1).filter(r => r[0]).map(r => ({
+    id: r[0],
+    nama: r[1],
+    total: students.filter(s => s.kelasId === r[0] && s.status === 'Aktif').length,
+    capacity: r[4]
+  }));
+
+  const stats = {
+    totalStudents: students.length,
+    activeStudents: students.filter(s => s.status === 'Aktif').length,
+    totalClasses: Math.max(0, classRows.length - 1),
+    todayAttendance: todayCount,
+    totalTransactions: Math.max(0, txRows.length - 1),
+    totalDeposits,
+    totalWithdrawals,
+    netTotal: totalDeposits - totalWithdrawals,
+    classStats,
+    lastUpdated: new Date().toISOString()
+  };
+
+  // Rekening tabungan
+  const savingsAccounts = savingsRows.slice(1).filter(r => r[0]).map(r => ({
+    id: r[0],
+    studentId: r[1],
+    balance: r[5] || 0,
+    status: r[7],
+    studentName: studentMap[r[1]] || '-'
+  }));
+
+  // 5 transaksi terbaru (sort by waktu, bukan urutan baris)
+  const recentTransactions = txRows.slice(1)
+    .sort((a, b) => new Date(b[8]) - new Date(a[8]))
+    .slice(0, 5)
+    .map(r => ({
+      nama: studentMap[r[2]] || '-',
+      jenis: r[3],
+      jumlah: r[4],
+      waktu: new Date(r[8]).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    }));
+
+  return {
+    stats,
+    students,          // untuk dropdown quick actions (absensi/transaksi)
+    savingsAccounts,
+    recentTransactions
+  };
+}
+
+function getDashboardDataStats() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const students = getCachedStudents();
+  const classes = getCachedClasses();
   const today = new Date().toDateString();
   
   // Count today attendance
@@ -2366,7 +2713,7 @@ function getDashboardStats() {
 function getSavingsAccounts() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SAVINGS_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
@@ -2379,14 +2726,6 @@ function getSavingsAccounts() {
   }));
 }
 
-// Expose for HTML forms
-function getClassesForForm() {
-  return getClasses();
-}
-
-function getStudentsForForm() {
-  return getStudents().filter(s => s.status === 'Aktif');
-}
 
 // ==================== HELPER FOR PDF/NOTIFICATION ====================
 function getSettings() {
@@ -2402,7 +2741,7 @@ function getSettings() {
 function getAttendanceByStudent(studentId) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.ATTENDANCE_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
@@ -2420,7 +2759,7 @@ function getAttendanceByStudent(studentId) {
 function getAttendanceByClass(classId) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.ATTENDANCE_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
@@ -2440,7 +2779,7 @@ function getAttendanceByClass(classId) {
 function getAttendanceHistory() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.ATTENDANCE_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
@@ -2457,7 +2796,7 @@ function getAttendanceHistory() {
 function getAllTransactions() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.TRANSACTIONS_SHEET);
   const data = sheet.getDataRange().getValues();
-  const students = getStudents();
+  const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
@@ -2475,12 +2814,12 @@ function getAllTransactions() {
 }
 
 function getClassById(id) {
-  const classes = getClasses();
+  const classes = getCachedClasses();
   return classes.find(c => c.id === id);
 }
 
 function getStudentsByClass(classId) {
-  const students = getStudents();
+  const students = getCachedStudents();
   return students.filter(s => s.kelasId == classId);
 }
 
