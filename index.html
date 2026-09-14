@@ -197,7 +197,8 @@
       border-radius: 8px;
       font-size: 1rem;
       transition: all 0.2s;
-      background: white;
+      background: var(--card);
+      color: var(--text);
     }
 
     input:focus, select:focus, textarea:focus {
@@ -668,6 +669,128 @@
       font-size: 0.85rem;
       color: #666;
     }
+
+    /* ==================== DARK MODE ==================== */
+    body.dark-mode {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #e0e0e0;
+      --text-light: #9e9e9e;
+      --border: #333;
+      --shadow: 0 2px 8px rgba(0,0,0,0.5);
+      color-scheme: dark;
+    }
+
+    body.dark-mode .card { color: var(--text); }
+    body.dark-mode th { background: #2d2d2d; color: var(--text); }
+    body.dark-mode tr:hover { background: #2a2a2a; }
+    body.dark-mode .badge-success { background: rgba(15,157,88,0.18); color: #7bdfa7; }
+    body.dark-mode .badge-warning { background: rgba(244,180,0,0.15); color: #ffd668; }
+    body.dark-mode .badge-danger  { background: rgba(217,48,37,0.2); color: #ff8a80; }
+    body.dark-mode .badge-info    { background: rgba(26,115,232,0.2); color: #8ab4f8; }
+    body.dark-mode .alert-success { background: rgba(15,157,88,0.15); color: #7bdfa7; border-color: rgba(15,157,88,0.5); }
+    body.dark-mode .alert-error   { background: rgba(217,48,37,0.15); color: #ff8a80; border-color: rgba(217,48,37,0.5); }
+    body.dark-mode .alert-info    { background: rgba(26,115,232,0.15); color: #8ab4f8; border-color: rgba(26,115,232,0.5); }
+    body.dark-mode .balance-card  { background: linear-gradient(135deg, #0b5d38 0%, #074428 100%); }
+    body.dark-mode .tx-deposit    { background: rgba(15,157,88,0.2); color: #7bdfa7; }
+    body.dark-mode .tx-withdraw   { background: rgba(217,48,37,0.2); color: #ff8a80; }
+    body.dark-mode .login-overlay { background: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%); }
+    body.dark-mode .login-tip     { background: rgba(15,157,88,0.12); }
+    body.dark-mode .login-tip p   { color: #7bdfa7; }
+    body.dark-mode .login-box-footer { background: #1a1a1a; color: var(--text-light); }
+    body.dark-mode ::-webkit-scrollbar-track { background: #1a1a1a; }
+    body.dark-mode ::-webkit-scrollbar-thumb { background: #444; }
+
+    /* Kontras grafik SVG di dark mode (gridline/label/titik dari JS) */
+    body.dark-mode .chart-axis line { stroke: #3a3a3a; }
+    body.dark-mode .chart-axis text { fill: #9e9e9e; }
+
+    /* Segmen grafik statistik + legend (kontras terjaga di 2 tema) */
+    .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:middle; }
+    .sw-deposit { background:#0F9D58; }
+    .sw-withdraw { background:#d93025; }
+    .sw-Hadir { background:#0F9D58; }
+    .sw-Sakit  { background:#F4B400; }
+    .sw-Izin   { background:#1a73e8; }
+    .sw-Alpha  { background:#d93025; }
+    .seg-deposit { fill:#0F9D58; }
+    .seg-withdraw { fill:#d93025; }
+    .seg-Hadir { fill:#0F9D58; }
+    .seg-Sakit  { fill:#F4B400; }
+    .seg-Izin   { fill:#1a73e8; }
+    .seg-Alpha  { fill:#d93025; }
+    body.dark-mode .sw-deposit { background:#7bdfa7; }
+    body.dark-mode .sw-withdraw { background:#ff8a80; }
+    body.dark-mode .sw-Hadir { background:#7bdfa7; }
+    body.dark-mode .sw-Sakit  { background:#ffd668; }
+    body.dark-mode .sw-Izin   { background:#8ab4f8; }
+    body.dark-mode .sw-Alpha  { background:#ff8a80; }
+    body.dark-mode .seg-deposit { fill:#7bdfa7; }
+    body.dark-mode .seg-withdraw { fill:#ff8a80; }
+    body.dark-mode .seg-Hadir { fill:#7bdfa7; }
+    body.dark-mode .seg-Sakit  { fill:#ffd668; }
+    body.dark-mode .seg-Izin   { fill:#8ab4f8; }
+    body.dark-mode .seg-Alpha  { fill:#ff8a80; }
+    body.dark-mode .chart-line-dot { stroke: #1e1e1e; }
+
+    /* Kontras input/select/textarea di dark mode */
+    body.dark-mode input,
+    body.dark-mode select,
+    body.dark-mode textarea {
+      background: #2a2a2a;
+      border-color: #444;
+      color: var(--text);
+    }
+    body.dark-mode input:focus,
+    body.dark-mode select:focus,
+    body.dark-mode textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.2);
+    }
+
+    /* Variabel surface utk inline style di template JS */
+    body.dark-mode {
+      --surface-info: rgba(26,115,232,0.1);
+      --surface-report: rgba(26,115,232,0.08);
+      --surface-success: rgba(15,157,88,0.12);
+    }
+
+    /* Permukaan lembut via CSS → ikut tema otomatis */
+    .surface-soft     { background: #f8f9fa; }
+    .surface-info     { background: #e8f0fe; }
+    .surface-report   { background: #f0f9ff; }
+    .surface-preview  { background: #f0f7ff; }
+    .surface-success  { background: #e8f5e9; }
+    .surface-readonly { background: #f5f5f5; }
+
+    body.dark-mode .surface-soft     { background: #242424; }
+    body.dark-mode .surface-info     { background: rgba(26,115,232,0.16); border-color: rgba(138,180,248,0.35); }
+    body.dark-mode .surface-report   { background: rgba(26,115,232,0.12); border-color: rgba(138,180,248,0.4); }
+    body.dark-mode .surface-preview  { background: rgba(26,115,232,0.1); }
+    body.dark-mode .surface-success  { background: rgba(15,157,88,0.16); }
+    body.dark-mode .surface-readonly { background: #2a2a2a; }
+    body.dark-mode .stat-card.warning .stat-value { color: #ffd668; }
+    body.dark-mode .nav          { background: var(--card); }
+    body.dark-mode .stat-card    { background: var(--card); }
+    body.dark-mode .modal        { background: var(--card); }
+    body.dark-mode .login-box    { background: var(--card); }
+    body.dark-mode .login-box-body label { color: var(--text); }
+    body.dark-mode .login-box-body input {
+      background: #2a2a2a;
+      border-color: #444;
+      color: var(--text);
+    }
+
+    /* Tema toggle button */
+    #theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 6px 10px;
+      border-radius: 8px;
+      line-height: 1;
+    }
   </style>
 </head>
 <body>
@@ -688,14 +811,19 @@
     <a href="#" data-page="savings">💰 Tabungan</a>
     <a href="#" data-page="transactions">🧾 Transaksi</a>
     <a href="#" data-page="reports">📄 Laporan</a>
+    <a href="#" data-page="stats">📊 Statistik</a>
     <a href="#" data-page="users">👥 Users</a>
+    <a href="#" data-page="activitylog">📜 Log</a>
     <a href="#" data-page="settings">💬 WhatsApp</a>
   </nav>
   
   <!-- User Info Bar -->
-  <div style="background:#f8f9fa; padding:10px 15px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0;">
-    <span style="font-size:0.85rem; color:#666;">👤 <span id="user-email">Admin</span></span>
-    <button class="btn btn-sm btn-outline" onclick="handleLogout()" style="font-size:0.8rem;">🚪 Logout</button>
+  <div style="background:var(--card); padding:10px 15px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);" id="user-info-bar">
+    <span style="font-size:0.85rem; color:var(--text-light);" id="user-info-label">👤 <span id="user-email">Admin</span></span>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="theme-toggle" onclick="toggleTheme()" title="Ganti mode terang/gelap">🌙</button>
+      <button class="btn btn-sm btn-outline" onclick="handleLogout()" style="font-size:0.8rem;">🚪 Logout</button>
+    </div>
   </div>
 
   <!-- Main Content -->
@@ -730,6 +858,7 @@
       <div class="login-box-header">
         <h1>📚 LMS & Tabungan</h1>
         <p>Silakan login untuk melanjutkan</p>
+        <button id="theme-toggle-login" onclick="toggleTheme()" title="Ganti mode terang/gelap" style="margin-top:10px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:0.9rem;">🌙</button>
       </div>
       <div class="login-box-body">
         <div id="login-error" class="login-error"></div>
@@ -822,6 +951,28 @@
     // JSON.stringify di scriptlet menghasilkan true/false valid untuk parsing JSON.
     const SERVER_LOGGED_IN = JSON.parse(document.querySelector('meta[name="server-logged-in"]').content || 'false');
 
+    // ==================== THEME (DARK MODE) ====================
+    // Terapkan tema tersimpan SEBELUM render — anti-flash putih saat load
+    function applyTheme(theme) {
+      document.body.classList.toggle('dark-mode', theme === 'dark');
+      ['theme-toggle', 'theme-toggle-login'].forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      });
+    }
+
+    function initTheme() {
+      applyTheme(localStorage.getItem('lms-theme') || 'light');
+    }
+
+    function toggleTheme() {
+      const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+      localStorage.setItem('lms-theme', next);
+      applyTheme(next);
+    }
+
+    initTheme();
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       if (!SERVER_LOGGED_IN) {
@@ -831,27 +982,6 @@
       initNavigation();
       loadDashboard();
     });
-
-    // Progress bar tipis: mulai saat navigasi, selesai saat render selesai
-    (function() {
-      const bar = document.getElementById('nav-progress');
-      window.startNavProgress = function() {
-        bar.style.transition = 'none';
-        bar.style.width = '0%';
-        bar.classList.add('active');
-        requestAnimationFrame(() => {
-          bar.style.transition = 'width 0.4s ease';
-          bar.style.width = '70%';
-        });
-      };
-      window.finishNavProgress = function() {
-        bar.style.width = '100%';
-        setTimeout(() => {
-          bar.classList.remove('active');
-          bar.style.width = '0%';
-        }, 250);
-      };
-    })();
 
     // Progress bar tipis: mulai saat navigasi, selesai saat render selesai
     (function() {
@@ -913,7 +1043,9 @@
         case 'savings': loadSavings(); break;
         case 'transactions': loadTransactions(); break;
         case 'reports': loadReports(); break;
+        case 'stats': loadStats(); break;
         case 'users': loadUsers(); break;
+        case 'activitylog': loadActivityLog(); break;
         case 'settings': loadWhatsAppSettingsPage(); break;
       }
     }
@@ -940,7 +1072,7 @@
             <div class="form-group">
               <label>🔑 Token Fonnte</label>
               <input type="password" id="waToken" placeholder="Tempel token dari dashboard Fonnte">
-              <p style="font-size:0.8rem; color:#999; margin-top:5px;">
+              <p style="font-size:0.8rem; color:var(--text-light); margin-top:5px;">
                 Kosongkan jika tidak ingin mengganti. Token tersimpan aman di Script Properties.
               </p>
             </div>
@@ -964,8 +1096,8 @@
               <button class="btn btn-success" onclick="saveWhatsAppSettingsNow()">💾 Simpan Pengaturan</button>
             </div>
             
-            <div style="margin-top:25px; padding:15px; background:#f8f9fa; border-radius:8px;">
-              <p style="font-size:0.9rem; margin:0; color:#666;">
+            <div style="margin-top:25px; padding:15px; background:var(--card); border-radius:8px;">
+              <p style="font-size:0.9rem; margin:0; color:var(--text-light);">
                 <strong>ℹ️ Catatan:</strong> Nomor HP orang tua diambil dari kolom <strong>No HP</strong> di data murid.
                 Format 08xx otomatis dikonversi ke 628xx. Pesan hanya terkirim jika checkbox
                 "Kirim notifikasi WhatsApp" dicentang saat input absensi/transaksi.
@@ -1041,7 +1173,7 @@
                 <div class="stat-card" style="cursor:pointer;" onclick="generateReport('absensi')">
                   <div class="stat-icon">📝</div>
                   <h3 style="margin:10px 0 5px;">Laporan Absensi</h3>
-                  <p style="font-size:0.85rem; color:#666;">Riwayat kehadiran semua murid + ringkasan Hadir/Sakit/Alpha</p>
+                  <p style="font-size:0.85rem; color:var(--text-light);">Riwayat kehadiran semua murid + ringkasan Hadir/Sakit/Alpha</p>
                   <button class="btn btn-primary btn-sm" style="margin-top:12px;">📄 Generate</button>
                 </div>
               </div>
@@ -1049,7 +1181,7 @@
                 <div class="stat-card" style="cursor:pointer;" onclick="generateReport('tabungan')">
                   <div class="stat-icon">💰</div>
                   <h3 style="margin:10px 0 5px;">Laporan Tabungan</h3>
-                  <p style="font-size:0.85rem; color:#666;">Rekening per murid + riwayat transaksi terakhir</p>
+                  <p style="font-size:0.85rem; color:var(--text-light);">Rekening per murid + riwayat transaksi terakhir</p>
                   <button class="btn btn-success btn-sm" style="margin-top:12px;">📄 Generate</button>
                 </div>
               </div>
@@ -1060,7 +1192,7 @@
                 <div class="stat-card" style="cursor:pointer;" onclick="showStudentReportPicker()">
                   <div class="stat-icon">👤</div>
                   <h3 style="margin:10px 0 5px;">Laporan Per Murid</h3>
-                  <p style="font-size:0.85rem; color:#666;">Laporan lengkap satu murid: data, tabungan, absensi, progres</p>
+                  <p style="font-size:0.85rem; color:var(--text-light);">Laporan lengkap satu murid: data, tabungan, absensi, progres</p>
                   <button class="btn btn-primary btn-sm" style="margin-top:12px;">📄 Pilih Murid</button>
                 </div>
               </div>
@@ -1068,13 +1200,13 @@
                 <div class="stat-card" style="cursor:pointer;" onclick="showClassReportPicker()">
                   <div class="stat-icon">🏫</div>
                   <h3 style="margin:10px 0 5px;">Laporan Per Kelas</h3>
-                  <p style="font-size:0.85rem; color:#666;">Daftar murid per kelas + statistik + riwayat absensi</p>
+                  <p style="font-size:0.85rem; color:var(--text-light);">Daftar murid per kelas + statistik + riwayat absensi</p>
                   <button class="btn btn-success btn-sm" style="margin-top:12px;">📄 Pilih Kelas</button>
                 </div>
               </div>
             </div>
             
-            <div style="margin-top:25px; padding:15px; background:#e8f0fe; border-radius:8px;">
+            <div style="margin-top:25px; padding:15px; background:var(--surface-info, #e8f0fe); border-radius:8px;">
               <p style="font-size:0.9rem; margin:0;">
                 <strong>💡 Cara Export PDF:</strong> Setelah laporan terbuka, tekan 
                 <strong>Ctrl+P</strong> (Windows) atau <strong>Cmd+P</strong> (Mac), lalu pilih 
@@ -1083,9 +1215,9 @@
             </div>
 
             <!-- Laporan Terjadwal (Otomatis) -->
-            <div style="margin-top:25px; padding:20px; background:#f0f9ff; border:2px solid #1a73e8; border-radius:12px;">
+            <div style="margin-top:25px; padding:20px; background:var(--surface-report, #f0f9ff); border:2px solid #1a73e8; border-radius:12px;">
               <h3 style="color:#1a73e8; margin-bottom:10px;">⏰ Laporan Otomatis Bulanan</h3>
-              <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">
+              <p style="font-size:0.9rem; color:var(--text-light); margin-bottom:15px;">
                 Sistem akan otomatis membuat laporan <strong>Tabungan</strong> + <strong>Absensi</strong> bulan sebelumnya,
                 mengirim PDF ke email di bawah, dan mengarsipkannya ke Drive folder 
                 <strong>"LMS & Tabungan - Arsip Laporan"</strong> setiap tanggal 1 jam 08:00.
@@ -1305,7 +1437,7 @@
       document.getElementById('content').innerHTML = `
         <div class="loading">
           <div class="spinner"></div>
-          <p style="margin-top:15px; color:#666;">Memuat data...</p>
+          <p style="margin-top:15px; color:var(--text-light);">Memuat data...</p>
         </div>
       `;
     }
@@ -1425,6 +1557,156 @@
     }
     
     // ==================== DASHBOARD ====================
+    // ==================== STATISTIK (visual) ====================
+    function loadStats() {
+      const cached = getPageCache('stats');
+      if (cached) {
+        renderStats(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
+      google.script.run
+        .withSuccessHandler((data) => {
+          setPageCache('stats', data);
+          renderStats(data);
+        })
+        .withFailureHandler(handleError)
+        .getStatsData();
+    }
+
+    function renderStats(stats, isCached = false) {
+      hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
+
+      const maxTx = Math.max(1, ...stats.monthly.map(m => Math.max(m.deposit, m.withdraw)));
+      const months = stats.monthly.map(m => m.label);
+      const W = 640, H = 260, P = { top: 20, right: 20, bottom: 30, left: 60 };
+      const cw = (W - P.left - P.right) / months.length;
+      const y = v => H - P.bottom - (v / maxTx) * (H - P.top - P.bottom);
+      const fmt = formatCompact;
+
+      let bars = '';
+      for (let g = 0; g <= 4; g++) {
+        const gv = maxTx * g / 4;
+        bars += `<line x1="${P.left}" y1="${y(gv)}" x2="${W - P.right}" y2="${y(gv)}" stroke="#e0e0e0" stroke-width="1" class="chart-axis"/>` +
+                `<text x="${P.left - 8}" y="${y(gv) + 4}" text-anchor="end" font-size="11" fill="#999" class="chart-axis">${fmt(gv)}</text>`;
+      }
+      months.forEach((lb, i) => {
+        const d = stats.monthly[i];
+        const bw = Math.max(4, cw * 0.32);
+        const x1 = P.left + i * cw + cw / 2;
+        bars += d.deposit > 0 ? `<rect x="${x1 - bw - 1}" y="${y(d.deposit)}" width="${bw}" height="${H - P.bottom - y(d.deposit)}" rx="3" class="seg-deposit"><title>Setoran ${lb}: Rp ${formatCurrency(d.deposit)}</title></rect>` : '';
+        bars += d.withdraw > 0 ? `<rect x="${x1 + 1}" y="${y(d.withdraw)}" width="${bw}" height="${H - P.bottom - y(d.withdraw)}" rx="3" class="seg-withdraw"><title>Penarikan ${lb}: Rp ${formatCurrency(d.withdraw)}</title></rect>` : '';
+        bars += `<text x="${x1}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#999" class="chart-axis">${lb}</text>`;
+      });
+
+      const maxAtt = Math.max(1, ...stats.byClass.map(c => c.Hadir + c.Sakit + c.Izin + c.Alpha));
+      const ya = v => H - P.bottom - (v / maxAtt) * (H - P.top - P.bottom);
+      const rw = (W - P.left - P.right) / Math.max(1, stats.byClass.length);
+      let attBars = '';
+      for (let g = 0; g <= 4; g++) {
+        const gv = maxAtt * g / 4;
+        attBars += `<line x1="${P.left}" y1="${ya(gv)}" x2="${W - P.right}" y2="${ya(gv)}" stroke="#e0e0e0" stroke-width="1" class="chart-axis"/>` +
+                   `<text x="${P.left - 8}" y="${ya(gv) + 4}" text-anchor="end" font-size="11" fill="#999" class="chart-axis">${Math.round(gv)}</text>`;
+      }
+      stats.byClass.forEach((c, i) => {
+        let acc = 0;
+        const bw = Math.max(4, rw * 0.55);
+        const x0 = P.left + i * rw + (rw - bw) / 2;
+        ['Hadir', 'Sakit', 'Izin', 'Alpha'].forEach(st => {
+          const h = (c[st] / maxAtt) * (H - P.top - P.bottom);
+          if (c[st] > 0) {
+            attBars += `<rect x="${x0}" y="${ya(acc + c[st])}" width="${bw}" height="${Math.max(1, h)}" class="seg-${st}"><title>${c.nama} — ${st}: ${c[st]}</title></rect>`;
+          }
+          acc += c[st];
+        });
+        const shortName = c.nama.length > 8 ? c.nama.slice(0, 7) + '…' : c.nama;
+        attBars += `<text x="${x0 + bw / 2}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#999" class="chart-axis">${shortName}</text>`;
+      });
+
+      document.getElementById('content').innerHTML = `
+        <div class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">📊 Statistik</h2>
+              <span class="text-muted" style="font-size:0.85rem;">12 bulan terakhir · ${stats.totalTransactions} transaksi · ${stats.totalAttendance} absensi</span>
+            </div>
+
+            <h3 style="margin-bottom:5px;">💰 Tren Setoran vs Penarikan per Bulan</h3>
+            <p style="font-size:0.8rem; color:var(--text-light); margin:0 0 10px;">
+              <span class="sw sw-deposit"></span> Setoran &nbsp;&nbsp;
+              <span class="sw sw-withdraw"></span> Penarikan &nbsp;&nbsp;· arahkan kursor ke batang untuk detail
+            </p>
+            <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto;" preserveAspectRatio="xMidYMid meet">${bars}</svg>
+
+            <h3 style="margin:25px 0 5px;">📝 Absensi per Kelas (12 bulan)</h3>
+            <p style="font-size:0.8rem; color:var(--text-light); margin:0 0 10px;">
+              <span class="sw sw-Hadir"></span> Hadir &nbsp;
+              <span class="sw sw-Sakit"></span> Sakit &nbsp;
+              <span class="sw sw-Izin"></span> Izin &nbsp;
+              <span class="sw sw-Alpha"></span> Alpha
+            </p>
+            ${stats.byClass.length ? `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto;" preserveAspectRatio="xMidYMid meet">${attBars}</svg>` : '<p class="text-muted">Belum ada kelas.</p>'}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== EXPORT CSV (generate di browser, instan) ====================
+    function downloadCSV(filename, rows) {
+      const csv = rows.map(r => r.map(c => {
+        const s = String(c == null ? '' : c);
+        return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(';')).join('\r\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showAlert('✅ ' + filename + ' berhasil diunduh', 'success');
+    }
+
+    function exportStudentsCSV() {
+      const students = state.students || [];
+      if (!students.length) { showAlert('Belum ada data murid', 'error'); return; }
+      const balanceMap = {};
+      (state.savingsAccounts || []).forEach(acc => balanceMap[acc.studentId] = Number(acc.balance));
+      const rows = [['ID', 'Nama', 'Kelas', 'No HP', 'Status', 'Saldo', 'Rekening', 'Tanggal Daftar']];
+      students.forEach(s => rows.push([s.id, s.nama, s.kelasNama || '', s.noHP || '', s.status, balanceMap[s.id] || 0, s.savingsId || '', s.tanggalDaftar ? new Date(s.tanggalDaftar).toLocaleDateString('id-ID') : '']));
+      downloadCSV('data-murid-' + new Date().toISOString().slice(0, 10) + '.csv', rows);
+    }
+
+    function exportTransactionsCSV() {
+      const cached = getPageCache('transactions') || [];
+      if (!cached.length) { showAlert('Belum ada data transaksi', 'error'); return; }
+      const rows = [['Tanggal', 'Nama Murid', 'Jenis', 'Jumlah', 'Saldo Setelah', 'Catatan']];
+      cached.forEach(t => rows.push([
+        new Date(t.tanggal).toLocaleDateString('id-ID'),
+        t.nama || '', t.jenis, Number(t.jumlah), Number(t.saldoSetelah), t.catatan || ''
+      ]));
+      downloadCSV('transaksi-' + new Date().toISOString().slice(0, 10) + '.csv', rows);
+    }
+
+    function exportAttendanceCSV() {
+      google.script.run
+        .withSuccessHandler((history) => {
+          if (!history || !history.length) { showAlert('Belum ada data absensi', 'error'); return; }
+          const rows = [['Tanggal', 'Nama Murid', 'Status', 'Catatan']];
+          history.forEach(a => rows.push([
+            new Date(a.tanggal).toLocaleDateString('id-ID'),
+            a.nama || '', a.status, a.catatan || ''
+          ]));
+          downloadCSV('absensi-' + new Date().toISOString().slice(0, 10) + '.csv', rows);
+        })
+        .withFailureHandler(handleError)
+        .getAttendanceHistory();
+    }
+
     function loadDashboard(opts = {}) {
       // Stale-while-revalidate: render instan dari snapshot terakhir,
       // lalu data segar diambil di belakang (pull-to-refresh = {fresh:true}).
@@ -1543,17 +1825,17 @@
               <div class="value">Rp ${formatCurrency(totalBalance)}</div>
             </div>
             ${savingsAccounts.slice(0, 3).map(acc => `
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f8f9fa; border-radius:8px; margin-top:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--card); border-radius:8px; margin-top:10px;">
                 <div>
                   <strong style="font-size:0.95rem;">${acc.studentName}</strong>
-                  <div style="font-size:0.8rem; color:#666;">${acc.id}</div>
+                  <div style="font-size:0.8rem; color:var(--text-light);">${acc.id}</div>
                 </div>
                 <div style="font-weight:700; font-size:1.1rem;">
                   ${acc.balance > 0 ? '💰 Rp ' + formatCurrency(acc.balance) : 'Belum ada setoran'}
                 </div>
               </div>
             `).join('')}
-            ${savingsAccounts.length === 0 ? '<p style="text-align:center; color:#999; margin-top:15px;">Belum ada rekening tabungan</p>' : ''}
+            ${savingsAccounts.length === 0 ? '<p style="text-align:center; color:var(--text-light); margin-top:15px;">Belum ada rekening tabungan</p>' : ''}
           </div>
 
           <!-- Transaksi Terbaru -->
@@ -1691,11 +1973,11 @@
       const changeIcon = trend.change >= 0 ? '📈' : '📉';
       summaryEl.innerHTML = `
         <div style="display:flex; gap:15px; flex-wrap:wrap;">
-          <span style="font-size:0.9rem; color:#666;">Periode: <strong>${trend.days} hari</strong></span>
-          <span style="font-size:0.9rem; color:#666;">Perubahan: 
+          <span style="font-size:0.9rem; color:var(--text-light);">Periode: <strong>${trend.days} hari</strong></span>
+          <span style="font-size:0.9rem; color:var(--text-light);">Perubahan: 
             <strong style="color:${changeColor};">${changeIcon} ${trend.change >= 0 ? '+' : ''}Rp ${formatCurrency(trend.change)}</strong>
           </span>
-          <span style="font-size:0.9rem; color:#666;">Saldo: <strong>Rp ${formatCurrency(trend.endTotal)}</strong></span>
+          <span style="font-size:0.9rem; color:var(--text-light);">Saldo: <strong>Rp ${formatCurrency(trend.endTotal)}</strong></span>
         </div>
       `;
       
@@ -1718,8 +2000,8 @@
         const gv = vMin + (range * g / 4);
         const gy = y(gv);
         gridLines += `
-          <line x1="${P.left}" y1="${gy}" x2="${W - P.right}" y2="${gy}" stroke="#e0e0e0" stroke-width="1"/>
-          <text x="${P.left - 8}" y="${gy + 4}" text-anchor="end" font-size="11" fill="#999">${formatCompact(gv)}</text>
+          <line x1="${P.left}" y1="${gy}" x2="${W - P.right}" y2="${gy}" stroke="#e0e0e0" stroke-width="1" class="chart-axis"/>
+          <text x="${P.left - 8}" y="${gy + 4}" text-anchor="end" font-size="11" fill="#999" class="chart-axis">${formatCompact(gv)}</text>
         `;
       }
       
@@ -1728,7 +2010,7 @@
       let xLabels = '';
       data.forEach((d, i) => {
         if (i % labelStep === 0 || i === data.length - 1) {
-          xLabels += `<text x="${x(i)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#999">${d.label}</text>`;
+          xLabels += `<text x="${x(i)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#999" class="chart-axis">${d.label}</text>`;
         }
       });
       
@@ -1745,7 +2027,7 @@
           ${gridLines}
           <polygon points="${areaPoints}" fill="url(#trendGrad)"/>
           <polyline points="${linePoints}" fill="none" stroke="#1a73e8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-          <circle cx="${x(data.length - 1)}" cy="${y(lastVal)}" r="5" fill="#1a73e8" stroke="white" stroke-width="2"/>
+          <circle cx="${x(data.length - 1)}" cy="${y(lastVal)}" r="5" fill="#1a73e8" stroke="white" stroke-width="2" class="chart-line-dot"/>
           ${xLabels}
         </svg>
       `;
@@ -1774,6 +2056,27 @@
         })
         .withFailureHandler(handleError)
         .getStudents();
+    }
+
+    // ==================== PENCARIAN INSTAN (tanpa server call) ====================
+    function instantSearch(inputId, listId, matchFn) {
+      const q = (document.getElementById(inputId)?.value || '').toLowerCase().trim();
+      document.querySelectorAll('#' + listId + ' tr').forEach(tr => {
+        const hit = q === '' || matchFn(tr);
+        tr.style.display = hit ? '' : 'none';
+      });
+    }
+
+    function searchStudents() {
+      instantSearch('searchStudents', 'studentsTableBody', (tr) =>
+        tr.textContent.toLowerCase().includes(document.getElementById('searchStudents').value.toLowerCase()));
+    }
+
+    function searchTransactions() {
+      const q = document.getElementById('searchTransactions').value.toLowerCase();
+      const jenis = document.getElementById('filterJenis').value;
+      instantSearch('searchTransactions', 'transactionsTableBody', (tr) =>
+        tr.textContent.toLowerCase().includes(q) && (jenis === '' || tr.dataset.jenis === jenis));
     }
 
     function renderStudents(students, isCached = false) {
@@ -1806,6 +2109,11 @@
             <button class="btn btn-primary" onclick="openAddStudentModal()">➕ Tambah Murid</button>
           </div>
           
+          <div style="margin-top:15px;">
+            <input type="text" id="searchStudents" placeholder="🔍 Cari nama / kelas / HP / status... (langsung, tanpa loading)" oninput="searchStudents()" style="max-width:420px;">
+            <button class="btn btn-sm btn-outline" onclick="exportStudentsCSV()" style="margin-left:10px;">📥 Export CSV</button>
+          </div>
+
           <div class="table-wrapper" style="margin-top:15px;">
             <table>
               <thead>
@@ -1814,12 +2122,12 @@
                   <th>Nama</th>
                   <th>Kelas</th>
                   <th>No HP</th>
-                  <th>Status</th>
+ <th>Status</th>
                   <th>Saldo</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="studentsTableBody">
                 ${students.map((s, i) => `
                   <tr>
                     <td class="text-center">${i + 1}</td>
@@ -1964,7 +2272,7 @@
           </div>
         </div>
 
-        <h4 style="margin-bottom:15px; color:#666;">🧾 Riwayat Transaksi</h4>
+        <h4 style="margin-bottom:15px; color:var(--text-light);">🧾 Riwayat Transaksi</h4>
         ${transactions.length > 0 ? `
           <div class="table-wrapper">
             <table>
@@ -2164,7 +2472,7 @@
                       <td class="text-muted">${c.jadwal || '-'}</td>
                       <td class="text-center">
                         ${count}/${c.kapasitas}
-                        <div style="width:60px; height:6px; background:#e0e0e0; border-radius:3px; margin-top:5px;">
+                        <div style="width:60px; height:6px; background:var(--border); border-radius:3px; margin-top:5px;">
                           <div style="width:${(count/c.kapasitas)*100}%; height:100%; background:${count >= c.kapasitas ? 'var(--danger)' : 'var(--success)'}; border-radius:3px;"></div>
                         </div>
                       </td>
@@ -2290,7 +2598,10 @@
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">📝 Absensi Hari Ini</h2>
-              <button class="btn btn-primary" onclick="openAttendanceModal()">➕ Tambah Absensi</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-outline" onclick="exportAttendanceCSV()">📥 Export CSV</button>
+                <button class="btn btn-primary" onclick="openAttendanceModal()">➕ Tambah Absensi</button>
+              </div>
             </div>
             
             <p class="text-muted" style="margin:15px 0;">
@@ -2617,7 +2928,7 @@
                     <td class="fw-bold">${acc.studentName}</td>
                     <td class="text-muted" style="font-family:monospace;">${acc.id}</td>
                     <td class="text-right fw-bold">
-                      ${Number(acc.balance) > 0 ? '💰 Rp ' + formatCurrency(acc.balance) : '<span style="color:#999;">Rp 0</span>'}
+                      ${Number(acc.balance) > 0 ? '💰 Rp ' + formatCurrency(acc.balance) : '<span style="color:var(--text-light);">Rp 0</span>'}
                     </td>
                     <td>
                       <span class="badge ${Number(acc.balance) > 0 ? 'badge-success' : 'badge-info'}">
@@ -2725,10 +3036,21 @@
         <div class="fade-in">
           <div class="card-header" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
             <h2 class="card-title" style="margin-bottom:0;">🧾 Riwayat Transaksi</h2>
-            <button class="btn btn-primary" onclick="openTransactionModal()">➕ Tambah Transaksi</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-sm btn-outline" onclick="exportTransactionsCSV()">📥 Export CSV</button>
+              <button class="btn btn-primary" onclick="openTransactionModal()">➕ Tambah Transaksi</button>
+            </div>
           </div>
 
           ${transactions.length > 0 ? `
+            <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+              <input type="text" id="searchTransactions" placeholder="🔍 Cari nama / catatan... (langsung, tanpa loading)" oninput="searchTransactions()" style="max-width:320px;">
+              <select id="filterJenis" onchange="searchTransactions()" style="max-width:180px;">
+                <option value="">Semua Jenis</option>
+                <option value="Setoran">💰 Setoran</option>
+                <option value="Penarikan">💸 Penarikan</option>
+              </select>
+            </div>
             <div class="table-wrapper" style="margin-top:15px;">
               <table>
                 <thead>
@@ -2742,9 +3064,9 @@
                     <th>Catatan</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="transactionsTableBody">
                   ${transactions.map((t, i) => `
-                    <tr>
+                    <tr data-jenis="${t.jenis}">
                       <td class="text-center">${i + 1}</td>
                       <td class="text-muted">${new Date(t.tanggal).toLocaleDateString('id-ID')} ${new Date(t.waktu || t.tanggal).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</td>
                       <td class="fw-bold">${t.nama}</td>
@@ -2792,7 +3114,7 @@
           </div>
           <div class="form-group">
             <label>ID Tabungan</label>
-            <input type="text" id="txSavingsId" readonly style="background:#f5f5f5; font-family:monospace;">
+            <input type="text" id="txSavingsId" readonly style="background:var(--card); font-family:monospace;">
           </div>
           <div class="form-group">
             <label>Jenis Transaksi <span class="required">*</span></label>
@@ -2805,7 +3127,7 @@
             <label>Jumlah (Rp) <span class="required">*</span></label>
             <input type="number" id="txAmount" min="1" required placeholder="0">
           </div>
-          <div class="card" style="background:#f0f7ff;">
+          <div class="card" style="background:var(--surface-info, #f0f7ff);">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
               <span>💳 Saldo Saat Ini:</span>
               <span class="fw-bold" id="currentBalancePreview">Rp 0</span>
@@ -2960,7 +3282,7 @@
             <form id="tx-form" onsubmit="submitQuickTx(event)">
               <input type="hidden" id="quickStudentId" value="${student.id}">
               <input type="hidden" id="quickSavingsId" value="${savingsId}">
-              <div class="card" style="background:#e8f5e9; margin-bottom:15px;">
+              <div class="card" style="background:var(--surface-success, #e8f5e9); margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between;">
                   <span>👤 Murid:</span>
                   <strong>${account.studentName || 'Unknown'}</strong>
@@ -3275,9 +3597,77 @@
         .deleteUser(email);
     }
 
+    // ==================== LOG AKTIVITAS ====================
+    function loadActivityLog() {
+      showLoading();
+      startNavProgress();
+      google.script.run
+        .withSuccessHandler(renderActivityLog)
+        .withFailureHandler(handleError)
+        .getActivityLog(200);
+    }
+
+    function renderActivityLog(logs) {
+      hideLoading();
+      finishNavProgress();
+      state.activityLog = logs || [];
+
+      document.getElementById('content').innerHTML = `
+        <div class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">📜 Log Aktivitas — siapa input apa & kapan</h2>
+              <a href="#" class="card-action" onclick="loadActivityLog(); return false;">🔄 Muat Ulang</a>
+            </div>
+            <div style="margin:15px 0;">
+              <input type="text" id="searchActivity" placeholder="🔍 Cari user / aksi / detail..." oninput="searchActivity()" style="max-width:420px;">
+            </div>
+            ${state.activityLog.length === 0 ? `
+              <div class="empty-state">
+                <div class="icon">📜</div>
+                <h3>Belum ada aktivitas tercatat</h3>
+                <p style="margin-top:10px;">Setiap tambah/edit/hapus murid, kelas, user,<br>absensi, transaksi, dan progres otomatis tercatat di sini.</p>
+              </div>
+            ` : `
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>User</th>
+                      <th>Aksi</th>
+                      <th>Detail</th>
+                      <th>Target (ID)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activityTableBody">
+                    ${state.activityLog.map((l, i) => `
+                      <tr>
+                        <td class="text-muted">${new Date(l.waktu).toLocaleString('id-ID')}</td>
+                        <td class="fw-bold">${l.user}</td>
+                        <td><span class="badge badge-info">${l.aksi}</span></td>
+                        <td>${l.detail || '-'}</td>
+                        <td class="text-muted" style="font-family:monospace; font-size:0.8rem;">${l.target || '-'}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function searchActivity() {
+      instantSearch('searchActivity', 'activityTableBody', (tr) =>
+        tr.textContent.toLowerCase().includes(document.getElementById('searchActivity').value.toLowerCase()));
+    }
+
     // Catatan: Semua akses data dilakukan via google.script.run (server-side).
     // Fungsi server: getStudents(), getClasses(), getBalance(), dst. di Code.gs.
     // Jangan panggil SpreadsheetApp langsung dari sisi client!
+    // Export CSV digenerate di browser (Blob) — tanpa server call.
   </script>
 </body>
 </html>

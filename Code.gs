@@ -12,7 +12,8 @@ const CONFIG = {
   SAVINGS_SHEET: 'Tabungan',
   TRANSACTIONS_SHEET: 'Transaksi',
   SETTINGS_SHEET: 'Settings',
-  USERS_SHEET: 'Users'
+  USERS_SHEET: 'Users',
+  ACTIVITY_SHEET: 'Log Aktivitas'
 };
 
 // ==================== ON OPEN MENU ====================
@@ -28,6 +29,8 @@ function onOpen() {
       .addItem('📋 Daftar Kelas', 'showClassList'))
     .addSubMenu(ui.createMenu('User')
       .addItem('👥 Daftar User', 'showUserList'))
+    .addSubMenu(ui.createMenu('Log')
+      .addItem('📜 Riwayat Aktivitas', 'showActivityLog'))
     .addSeparator()
     .addSubMenu(ui.createMenu('Absensi')
       .addItem('📝 Absensi Hari Ini', 'showAttendance')
@@ -169,10 +172,19 @@ function setupSheets() {
     }
   }
 
+  // Create Log Aktivitas sheet (audit trail: siapa, apa, kapan)
+  if (!ss.getSheetByName(ACTIVITY_LOG_SHEET)) {
+    const actSheet = ss.insertSheet(ACTIVITY_LOG_SHEET);
+    actSheet.getRange(1, 1, 1, 5).setValues([
+      ['Waktu', 'User', 'Aksi', 'Detail', 'Target']
+    ]);
+    actSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#455A64').setFontColor('white');
+  }
+
   // Freeze header rows
   [CONFIG.STUDENTS_SHEET, CONFIG.CLASSES_SHEET, CONFIG.ATTENDANCE_SHEET,
    CONFIG.PROGRESS_SHEET, CONFIG.SAVINGS_SHEET, CONFIG.TRANSACTIONS_SHEET,
-   CONFIG.USERS_SHEET
+   CONFIG.USERS_SHEET, ACTIVITY_LOG_SHEET
   ].forEach(sheetName => {
     ss.getSheetByName(sheetName).setFrozenRows(1);
   });
@@ -238,6 +250,7 @@ function addStudent(data) {
   // Auto-create savings account
   createSavingsAccount(savingsId, studentId, data.nama, 0);
 
+  logActivity('Tambah Murid', 'ID ' + studentId + ' · Rekening ' + savingsId, data.nama);
   return { success: true, studentId, savingsId, message: 'Murid berhasil ditambahkan!' };
 }
 
@@ -279,6 +292,7 @@ function updateStudent(id, data) {
       values[i][6] = data.status || values[i][6];
       sheet.getRange(i + 1, 1, 1, values[i].length).setValues([values[i]]);
       invalidateDataCache();
+      logActivity('Edit Murid', 'Perubahan data disimpan', id);
       return { success: true, message: 'Data murid berhasil diperbarui!' };
     }
   }
@@ -381,6 +395,7 @@ function addClass(data) {
 
   sheet.appendRow(newRow);
   invalidateDataCache();
+  logActivity('Tambah Kelas', 'ID ' + classId, data.nama);
   return { success: true, classId, message: 'Kelas berhasil ditambahkan!' };
 }
 
@@ -499,6 +514,7 @@ function addUser(data) {
     .appendRow([email, data.nama || '', peran, status, new Date()]);
   invalidateDataCache();
 
+  logActivity('Tambah User', 'Peran ' + peran + ', status ' + status, email);
   return { success: true, message: `User ${email} berhasil ditambahkan!` };
 }
 
@@ -521,6 +537,7 @@ function updateUser(oldEmail, data) {
       if (data.status) values[i][3] = (data.status === 'Nonaktif') ? 'Nonaktif' : 'Aktif';
       sheet.getRange(i + 1, 1, 1, values[i].length).setValues([values[i]]);
       invalidateDataCache();
+      logActivity('Edit User', 'Data user diperbarui', oldEmail);
       return { success: true, message: 'User berhasil diperbarui!' };
     }
   }
@@ -557,10 +574,88 @@ function deleteUser(email) {
     if (String(values[i][0]).trim().toLowerCase() === target) {
       sheet.deleteRow(i + 1);
       invalidateDataCache();
+      logActivity('Hapus User', 'Akses login dicabut', target);
       return { success: true, message: 'User berhasil dihapus!' };
     }
   }
   return { success: false, message: 'User tidak ditemukan!' };
+}
+
+// ==================== ACTIVITY LOG ====================
+const ACTIVITY_LOG_SHEET = 'Log Aktivitas';
+
+/**
+ * Catat aktivitas user (siapa, apa, kapan). Dipanggil dari semua aksi tulis.
+ * Gagal logging TIDAK boleh menggagalkan aksi utama — dibungkus try/catch.
+ */
+function logActivity(aksi, detail, target) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(ACTIVITY_LOG_SHEET);
+    if (!sheet) {
+      sheet = ss.insertSheet(ACTIVITY_LOG_SHEET);
+      sheet.getRange(1, 1, 1, 5).setValues([['Waktu', 'User', 'Aksi', 'Detail', 'Target']]);
+      sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#455A64').setFontColor('white');
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([
+      new Date(),
+      getCurrentUser() || '(tidak diketahui)',
+      aksi,
+      detail || '',
+      target || ''
+    ]);
+  } catch (e) {
+    // Logging gagal (mis. kuota) — abaikan, jangan ganggu aksi user
+  }
+}
+
+/**
+ * Ambil riwayat aktivitas (terbaru dulu, dibatasi `limit`).
+ */
+function getActivityLog(limit) {
+  const n = limit || 100;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ACTIVITY_LOG_SHEET);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1).filter(r => r[0])
+    .slice(-n)
+    .reverse()
+    .map(r => ({
+      waktu: r[0],
+      user: r[1],
+      aksi: r[2],
+      detail: r[3],
+      target: r[4]
+    }));
+}
+
+function showActivityLog() {
+  const logs = getActivityLog(100);
+  if (logs.length === 0) {
+    SpreadsheetApp.getUi().alert('Belum ada aktivitas tercatat.');
+    return;
+  }
+
+  let html = '<div style="padding: 15px;">';
+  html += '<h2>Riwayat Aktivitas (100 terakhir)</h2>';
+  html += '<table style="width:100%; border-collapse: collapse; margin-top: 15px;">';
+  html += '<tr style="background:#455A64; color:white;">';
+  html += '<th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th><th>Target</th>';
+  html += '</tr>';
+
+  logs.forEach(l => {
+    html += `<tr style="border-bottom:1px solid #ddd;">
+      <td style="padding:6px; font-size:12px;">${new Date(l.waktu).toLocaleString('id-ID')}</td>
+      <td style="padding:6px; font-size:12px;">${l.user}</td>
+      <td style="padding:6px; font-size:12px; font-weight:bold;">${l.aksi}</td>
+      <td style="padding:6px; font-size:12px;">${l.detail || '-'}</td>
+      <td style="padding:6px; font-size:12px;">${l.target || '-'}</td>
+    </tr>`;
+  });
+
+  html += '</table></div>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(850).setHeight(500), 'Riwayat Aktivitas');
 }
 
 function getStudentCountInClass(classId) {
@@ -582,6 +677,7 @@ function deleteClass(id) {
     if (data[i][0] == id) {
       classesSheet.deleteRow(i + 1);
       invalidateDataCache();
+      logActivity('Hapus Kelas', 'Data kelas dihapus', id);
       return { success: true, message: 'Kelas berhasil dihapus!' };
     }
   }
@@ -597,6 +693,7 @@ function deleteStudent(id) {
     if (data[i][0] == id) {
       sheet.deleteRow(i + 1);
       invalidateDataCache();
+      logActivity('Hapus Murid', 'Data murid dihapus', id);
       return { success: true, message: 'Murid berhasil dihapus!' };
     }
   }
@@ -632,6 +729,8 @@ function recordAttendance(data) {
     checkIn,
     checkOut
   ]);
+
+  logActivity('Absensi', status + (data.catatan ? ' · ' + data.catatan : ''), data.studentId);
 
   // Notifikasi email/WA TIDAK dikirim di sini (asinkron via antrean) —
   // simpan absensi selesai < 1 detik; notifikasi menyusul lewat trigger.
@@ -764,6 +863,7 @@ function addProgress(data) {
     data.guru || ''
   ]);
 
+  logActivity('Tambah Progres', (data.mapel || '-') + ' · Nilai ' + (data.nilai || 0), data.studentId);
   return { success: true, message: 'Progres berhasil ditambahkan!' };
 }
 
@@ -910,6 +1010,8 @@ function addTransaction(data) {
     savingsSheet.getRange(savingsRow, 5).setValue(currentWithdrawal + amount);
   }
   savingsSheet.getRange(savingsRow, 6).setValue(newBalance);
+
+  logActivity('Transaksi ' + data.jenis, 'Rp ' + formatCurrency(amount) + ' · Saldo baru Rp ' + formatCurrency(newBalance), data.studentId);
 
   // Notifikasi TIDAK dikirim di sini (asinkron via antrean) —
   // transaksi selesai < 1 detik; email/WA menyusul lewat trigger.
@@ -1546,6 +1648,63 @@ function getAttendanceInRange(start, end) {
     const d = new Date(a.tanggal);
     return d >= start && d < end;
   });
+}
+
+// ---------- Data agregat utk halaman Statistik (1 panggilan) ----------
+function getStatsData() {
+  const now = new Date();
+  const year = now.getFullYear();
+
+  // 12 bulan terakhir (indeks 0 = 11 bulan lalu, indeks 11 = bulan ini)
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(year, now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+  const rangeStart = new Date(months[0].year, months[0].month, 1);
+  const rangeEnd = new Date(year, now.getMonth() + 1, 1);
+
+  const transactions = getTransactionsInRange(rangeStart, rangeEnd);
+  const attendance = getAttendanceInRange(rangeStart, rangeEnd);
+  const classes = getCachedClasses();
+  const students = getCachedStudents();
+
+  // Tren setor/tarik per bulan
+  const monthly = months.map(m => {
+    const ms = new Date(m.year, m.month, 1);
+    const me = new Date(m.year, m.month + 1, 1);
+    let deposit = 0, withdraw = 0;
+    transactions.forEach(t => {
+      const d = new Date(t.tanggal);
+      if (d >= ms && d < me) {
+        if (t.jenis === 'Setoran') deposit += Number(t.jumlah);
+        else if (t.jenis === 'Penarikan') withdraw += Number(t.jumlah);
+      }
+    });
+    return {
+      label: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][m.month],
+      deposit: deposit,
+      withdraw: withdraw
+    };
+  });
+
+  // Absensi per kelas (12 bulan terakhir)
+  const studentMap = {};
+  students.forEach(s => studentMap[s.id] = s.kelasId);
+  const byClass = classes.map(c => ({ id: c.id, nama: c.nama, Hadir: 0, Sakit: 0, Izin: 0, Alpha: 0 }));
+  const classMap = {};
+  byClass.forEach(c => classMap[c.id] = c);
+  attendance.forEach(a => {
+    const c = classMap[studentMap[a.studentId]];
+    if (c && c[a.status] !== undefined) c[a.status]++;
+  });
+
+  return {
+    monthly: monthly,
+    byClass: byClass,
+    totalAttendance: attendance.length,
+    totalTransactions: transactions.length
+  };
 }
 
 // ---------- Helper: HTML konten laporan dengan rentang ----------

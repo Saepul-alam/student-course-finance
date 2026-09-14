@@ -26,6 +26,11 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 - ✅ **Manajemen User** - Tambah/edit/hapus user login dari web app (khusus Admin)
 - ✅ **Laporan Otomatis Bulanan** - PDF terkirim otomatis tiap tanggal 1 + arsip Drive
 - ✅ **Grafik Tren Saldo** - Line chart 7/30/90 hari di dashboard (SVG, tanpa library)
+- ✅ **Pencarian & Filter Instan** - Cari di tabel murid & transaksi langsung dari browser, tanpa loading
+- ✅ **Export CSV** - Unduh data murid, transaksi, dan absensi ke CSV (dibuka di Excel/Sheets, generate instan di browser)
+- ✅ **Halaman Statistik** - Grafik tren setoran vs penarikan per bulan + absensi per kelas (12 bulan terakhir)
+- ✅ **Log Aktivitas** - Audit trail otomatis: siapa input apa dan kapan (12 jenis aksi tercatat)
+- ✅ **Dark Mode** - Toggle 🌙/☀️ di aplikasi & layar login, pilihan tersimpan di browser, tanpa flash saat load
 - ✅ **Performa Optimal** - Cache 2 lapis (server + browser), navigasi instan (stale-while-revalidate), progress bar tipis
 
 ### 🔗 Integrasi
@@ -126,12 +131,12 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
    > ⚠️ Ini normal! Peringatan muncul karena script buatan sendiri belum diverifikasi Google.
    > Script ini hanya mengakses spreadsheet milikmu sendiri.
 6. Centang semua izin yang diminta → klik **Allow**
-7. Run selesai → cek spreadsheet: **8 sheet** baru otomatis dibuat
+7. Run selesai → cek spreadsheet: **9 sheet** baru otomatis dibuat
 
 **Langkah 8: Verifikasi di Spreadsheet**
 1. Kembali ke tab spreadsheet, refresh halaman (F5)
 2. Menu **📚 LMS & Tabungan** muncul di toolbar (paling kanan)
-3. Sheet yang dibuat otomatis: `Murid`, `Kelas`, `Absensi`, `Progres`, `Tabungan`, `Transaksi`, `Settings`, `Users`
+3. Sheet yang dibuat otomatis: `Murid`, `Kelas`, `Absensi`, `Progres`, `Tabungan`, `Transaksi`, `Settings`, `Users`, `Log Aktivitas`
    > Sheet **Users** otomatis terisi email dari `ALLOWED_USERS` sebagai Admin — ini pintu masuk pertamamu.
 
 ### 📌 Bagian 5 — Deploy Web App (Akses via URL/HP)
