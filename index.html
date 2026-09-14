@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS & Tabungan</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 100%;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #1a73e8;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #1a73e8;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 5px rgba(26,115,232,0.2);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1557b0;
+      transform: translateY(-1px);
+    }
+    .btn-success {
+      background: #0F9D58;
+      color: white;
+    }
+    .btn-success:hover {
+      background: #0b7a46;
+    }
+    .btn-danger {
+      background: #d93025;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #b71c1c;
+    }
+    .btn-warning {
+      background: #F4B400;
+      color: #333;
+    }
+    .btn-warning:hover {
+      background: #e6a800;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .message {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: none;
+    }
+    .message-success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #4caf50;
+    }
+    .message-error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #f44336;
+    }
+    .card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border-left: 4px solid #1a73e8;
+    }
+    .card-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a73e8;
+    }
+    .row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .col {
+      flex: 1;
+    }
+    .inline-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .inline-form input {
+      flex: 1;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .badge-warning {
+      background: #fff3e0;
+      color: #e65100;
+    }
+    .badge-danger {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab.active {
+      color: #1a73e8;
+      border-bottom-color: #1a73e8;
+    }
+    .tab:hover {
+      color: #1a73e8;
+    }
+    #setup-form {
+      display: none;
+    }
+    #help-content {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📚 LMS & Buku Tabungan</h2>
+
+    <!-- Setup Tab -->
+    <div id="setup-tab">
+      <div class="card">
+        <div class="card-title">⚙️ Setup Awal Sistem</div>
+        <p style="color:#666; font-size:13px; margin-top:5px;">Klik tombol di bawah untuk membuat semua sheet yang diperlukan.</p>
+      </div>
+      <button class="btn btn-primary" onclick="runSetup()">🚀 Jalankan Setup</button>
+      <div id="setup-result" class="message"></div>
+    </div>
+
+    <!-- Add Student Tab -->
+    <div id="add-student-tab" style="display:none;">
+      <h2>➕ Tambah Murid Baru</h2>
+      <form id="student-form" onsubmit="submitStudent(event)">
+        <div class="form-group">
+          <label for="nama">Nama Lengkap *</label>
+          <input type="text" id="nama" required placeholder="Masukkan nama murid">
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="tanggalLahir">Tanggal Lahir</label>
+            <input type="date" id="tanggalLahir">
+          </div>
+          <div class="col form-group">
+            <label for="kelasId">Kelas</label>
+            <select id="kelasId">
+              <option value="">-- Pilih Kelas --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="email">Email Orang Tua</label>
+            <input type="email" id="email" placeholder="email@contoh.com">
+          </div>
+          <div class="col form-group">
+            <label for="noHP">No HP</label>
+            <input type="tel" id="noHP" placeholder="08xxxxxxxxxx">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="Aktif">Aktif</option>
+            <option value="Cuti">Cuti</option>
+            <option value="Lulus">Lulus</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-success">✅ Simpan Murid</button>
+          <button type="button" class="btn btn-warning" onclick="resetForm()">🔄 Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Add Class Tab -->
+    <div id="add-class-tab" style="display:none;">
+      <h2>➕ Tambah Kelas Baru</h2>
+      <form id="class-form" onsubmit="submitClass(event)">
+        <div class="form-group">
+          <label for="className">Nama Kelas *</label>
+          <input type="text" id="className" required placeholder="Contoh: Kelas 5A">
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="teacher">Guru Pengampu</label>
+            <input type="text" id="teacher" placeholder="Nama guru">
+          </div>
+          <div class="col form-group">
+            <label for="schedule">Jadwal</label>
+            <input type="text" id="schedule" placeholder="Senin, Rabu, Jumat">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="capacity">Kapasitas</label>
+            <input type="number" id="capacity" min="1" value="30">
+          </div>
+          <div class="col form-group">
+            <label for="fee">Biaya Bulanan (Rp)</label>
+            <input type="number" id="fee" min="0" placeholder="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="classStatus">Status</label>
+          <select id="classStatus">
+            <option value="Aktif">Aktif</option>
+            <option value="Tutup">Tutup</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-success">✅ Simpan Kelas</button>
+          <button type="button" class="btn btn-warning" onclick="resetClassForm()">🔄 Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Transaction Tab -->
+    <div id="transaction-tab" style="display:none;">
+      <h2>💰 Transaksi Tabungan</h2>
+      <form id="transaction-form" onsubmit="submitTransaction(event)">
+        <div class="form-group">
+          <label for="txStudentId">Pilih Murid *</label>
+          <select id="txStudentId" required onchange="updateSavingsId()">
+            <option value="">-- Pilih Murid --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="savingsId">ID Tabungan</label>
+          <input type="text" id="savingsId" readonly style="background:#f5f5f5;">
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="txType">Jenis Transaksi *</label>
+            <select id="txType" required onchange="updateCurrentBalance()">
+              <option value="Setoran">💰 Setoran (Tabung)</option>
+              <option value="Penarikan">💸 Penarikan (Ambil)</option>
+            </select>
+          </div>
+          <div class="col form-group">
+            <label for="txAmount">Jumlah (Rp) *</label>
+            <input type="number" id="txAmount" min="1" required placeholder="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">💳 Saldo Saat Ini</div>
+          <div class="card-value" id="currentBalanceDisplay">Rp 0</div>
+        </div>
+
+        <div class="form-group">
+          <label for="txNote">Catatan</label>
+          <textarea id="txNote" placeholder="Contoh: Uang jajan bulan Januari"></textarea>
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-success">✅ Proses Transaksi</button>
+          <button type="button" class="btn btn-warning" onclick="resetTransactionForm()">🔄 Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit Student Tab -->
+    <div id="edit-student-tab" style="display:none;">
+      <h2>✏️ Edit Data Murid</h2>
+      <p style="color:#666; margin-bottom:15px;">Cari murid berdasarkan nama atau ID:</p>
+      <div class="row">
+        <div class="col form-group">
+          <input type="text" id="searchStudentEdit" placeholder="Ketik nama murid..." oninput="searchStudentForEdit()">
+        </div>
+        <div class="col form-group" style="flex:0 0 auto;">
+          <button class="btn btn-primary" onclick="findStudentForEdit()">🔍 Cari</button>
+        </div>
+      </div>
+
+      <div id="editStudentForm" style="display:none;">
+        <hr style="margin:20px 0; border-color:#e0e0e0;">
+        <form id="edit-student-form" onsubmit="saveStudentEdit(event)">
+          <input type="hidden" id="editStudentId">
+
+          <div class="form-group">
+            <label for="editNama">Nama Lengkap *</label>
+            <input type="text" id="editNama" required>
+          </div>
+
+          <div class="row">
+            <div class="col form-group">
+              <label for="editKelasId">Kelas</label>
+              <select id="editKelasId">
+                <option value="">-- Pilih Kelas --</option>
+              </select>
+            </div>
+            <div class="col form-group">
+              <label for="editStatus">Status</label>
+              <select id="editStatus">
+                <option value="Aktif">Aktif</option>
+                <option value="Cuti">Cuti</option>
+                <option value="Lulus">Lulus</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col form-group">
+              <label for="editTanggalLahir">Tanggal Lahir</label>
+              <input type="date" id="editTanggalLahir">
+            </div>
+            <div class="col form-group">
+              <label for="editEmail">Email Orang Tua</label>
+              <input type="email" id="editEmail">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editNoHP">No HP</label>
+            <input type="tel" id="editNoHP">
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
+            <button type="button" class="btn btn-warning" onclick="cancelEdit()">❌ Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Progress Tab -->
+    <div id="progress-tab" style="display:none;">
+      <h2>📈 Update Progres Murid</h2>
+      <form id="progress-form" onsubmit="submitProgress(event)">
+        <div class="form-group">
+          <label for="progressStudentId">Pilih Murid *</label>
+          <select id="progressStudentId" required>
+            <option value="">-- Pilih Murid --</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label for="progressMapel">Mata Pelajaran *</label>
+            <input type="text" id="progressMapel" required placeholder="Matematika, Bahasa Indonesia, dll">
+          </div>
+          <div class="col form-group">
+            <label for="progressNilai">Nilai</label>
+            <input type="number" id="progressNilai" min="0" max="100" placeholder="0-100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="progressTopik">Topik</label>
+          <input type="text" id="progressTopik" placeholder="Contoh: Penjumlahan pecahan">
+        </div>
+
+        <div class="form-group">
+          <label for="progressDeskripsi">Deskripsi / Keterangan</label>
+          <textarea id="progressDeskripsi" rows="3" placeholder="Catatan tambahan tentang progres murid..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="progressGuru">Guru</label>
+          <input type="text" id="progressGuru" placeholder="Nama guru yang memberikan nilai">
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-success">✅ Simpan Progres</button>
+          <button type="button" class="btn btn-warning" onclick="resetProgressForm()">🔄 Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Help Tab -->
+    <div id="help-tab" style="display:none;">
+      <h2>ℹ️ Bantuan & Panduan</h2>
+      <div style="display:flex; flex-direction:column; gap:15px;">
+        <div class="card" style="border-left-color:#0F9D58;">
+          <div class="card-title">📝 Absensi</div>
+          <p style="color:#666; font-size:13px;">Catat kehadiran murid setiap hari. Status: Hadir, Sakit, Izin, Alpha</p>
+        </div>
+        <div class="card" style="border-left-color:#9C27B0;">
+          <div class="card-title">📊 Progres</div>
+          <p style="color:#666; font-size:13px;">Input nilai dan topik pembelajaran untuk memantau perkembangan murid</p>
+        </div>
+        <div class="card" style="border-left-color:#FF6D01;">
+          <div class="card-title">💰 Tabungan</div>
+          <p style="color:#666; font-size:13px;">Setoran menambah saldo, penarikan mengurangi saldo. Saldo otomatis terupdate</p>
+        </div>
+        <div class="card" style="border-left-color:#4285F4;">
+          <div class="card-title">🔄 Integrasi</div>
+          <p style="color:#666; font-size:13px;">Setiap murid otomatis mendapat ID Tabungan. Transaksi terhubung dengan data murid</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Message -->
+    <div id="global-result" class="message" style="display:none;"></div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs" style="margin-top:30px;">
+      <button class="tab active" onclick="showTab('setup-tab', this)">⏻ Setup</button>
+      <button class="tab" onclick="showTab('add-student-tab', this)">➕ Murid</button>
+      <button class="tab" onclick="showTab('add-class-tab', this)">➕ Kelas</button>
+      <button class="tab" onclick="showTab('transaction-tab', this)">💰 Tabungan</button>
+      <button class="tab" onclick="showTab('edit-student-tab', this)">✏️ Edit Murid</button>
+      <button class="tab" onclick="showTab('progress-tab', this)">📈 Progres</button>
+      <button class="tab" onclick="showTab('help-tab', this)">ℹ️ Bantuan</button>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentSavingsId = '';
+
+    // Tab management
+    function showTab(tabId, btn) {
+      // Hide all tabs
+      document.querySelectorAll('[id$="-tab"]').forEach(el => {
+        if (!el.id.includes('global')) el.style.display = 'none';
+      });
+
+      // Show selected tab
+      document.getElementById(tabId).style.display = 'block';
+
+      // Update button states
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Load data for forms
+      if (tabId === 'add-student-tab') loadClassesForStudent();
+      if (tabId === 'add-class-tab') {};
+      if (tabId === 'transaction-tab') {
+        loadStudentsForTransaction();
+      }
+      if (tabId === 'edit-student-tab') loadClassesForEdit();
+      if (tabId === 'progress-tab') loadStudentsForProgress();
+    }
+
+    // Show message
+    function showMessage(message, type) {
+      const msgDiv = document.getElementById('global-result');
+      msgDiv.textContent = message;
+      msgDiv.className = 'message message-' + type + ' ' + (type === 'success' ? 'show' : 'show');
+      msgDiv.style.display = 'block';
+
+      setTimeout(() => {
+        msgDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    // Setup
+    function runSetup() {
+      this.disabled = true;
+      this.textContent = '⏳ Memproses...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('setup-result').className = 'message message-success show';
+          document.getElementById('setup-result').textContent = result;
+          document.getElementById('setup-result').style.display = 'block';
+
+          setTimeout(() => {
+            document.getElementById('setup-result').style.display = 'none';
+          }, 5000);
+
+          document.querySelector('.btn-primary').disabled = false;
+          document.querySelector('.btn-primary').textContent = '🚀 Jalankan Setup';
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('setup-result').className = 'message message-error show';
+          document.getElementById('setup-result').textContent = 'Error: ' + error.message;
+          document.getElementById('setup-result').style.display = 'block';
+
+          document.querySelector('.btn-primary').disabled = false;
+          document.querySelector('.btn-primary').textContent = '🚀 Jalankan Setup';
+        })
+        .setupSheets();
+    }
+
+    // Student Form
+    function loadClassesForStudent() {
+      google.script.run.withSuccessHandler(function(classes) {
+        const select = document.getElementById('kelasId');
+        select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        classes.forEach(c => {
+          const option = document.createElement('option');
+          option.value = c.id;
+          option.textContent = c.nama;
+          select.appendChild(option);
+        });
+      }).getClasses();
+    }
+
+    function loadClassesForEdit() {
+      google.script.run.withSuccessHandler(function(classes) {
+        const select = document.getElementById('editKelasId');
+        select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        classes.forEach(c => {
+          const option = document.createElement('option');
+          option.value = c.id;
+          option.textContent = c.nama;
+          select.appendChild(option);
+        });
+      }).getClasses();
+    }
+
+    function submitStudent(e) {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = '⏳ Menyimpan...';
+
+      const data = {
+        nama: document.getElementById('nama').value,
+        kelasId: document.getElementById('kelasId').value,
+        tanggalLahir: document.getElementById('tanggalLahir').value,
+        email: document.getElementById('email').value,
+        noHP: document.getElementById('noHP').value,
+        status: document.getElementById('status').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showMessage(result.message, 'success');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Murid';
+          e.target.reset();
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Murid';
+        })
+        .addStudent(data);
+    }
+
+    function resetForm() {
+      document.getElementById('student-form').reset();
+    }
+
+    // Class Form
+    function submitClass(e) {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = '⏳ Menyimpan...';
+
+      const data = {
+        nama: document.getElementById('className').value,
+        guru: document.getElementById('teacher').value,
+        jadwal: document.getElementById('schedule').value,
+        kapasitas: parseInt(document.getElementById('capacity').value) || 30,
+        biaya: parseInt(document.getElementById('fee').value) || 0,
+        status: document.getElementById('classStatus').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showMessage(result.message, 'success');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Kelas';
+          e.target.reset();
+          document.getElementById('fee').value = 0;
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Kelas';
+        })
+        .addClass(data);
+    }
+
+    function resetClassForm() {
+      document.getElementById('class-form').reset();
+      document.getElementById('fee').value = 0;
+    }
+
+    // Transaction Form
+    function loadStudentsForTransaction() {
+      google.script.run.withSuccessHandler(function(students) {
+        const select = document.getElementById('txStudentId');
+        select.innerHTML = '<option value="">-- Pilih Murid --</option>';
+        students.forEach(s => {
+          const option = document.createElement('option');
+          option.value = s.id;
+          option.textContent = s.nama + ' (' + s.kelasNama + ')';
+          select.appendChild(option);
+        });
+      }).getStudentsForForm();
+    }
+
+    function loadStudentsForProgress() {
+      google.script.run.withSuccessHandler(function(students) {
+        const select = document.getElementById('progressStudentId');
+        select.innerHTML = '<option value="">-- Pilih Murid --</option>';
+        students.forEach(s => {
+          const option = document.createElement('option');
+          option.value = s.id;
+          option.textContent = s.nama + ' (' + s.kelasNama + ')';
+          select.appendChild(option);
+        });
+      }).getStudentsForForm();
+    }
+
+    function updateSavingsId() {
+      const studentId = document.getElementById('txStudentId').value;
+      if (!studentId) {
+        document.getElementById('savingsId').value = '';
+        document.getElementById('currentBalanceDisplay').textContent = 'Rp 0';
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(student) {
+        if (student) {
+          currentSavingsId = student.savingsId;
+          document.getElementById('savingsId').value = student.savingsId;
+          updateCurrentBalance();
+        }
+      }).getStudent(studentId);
+    }
+
+    function updateCurrentBalance() {
+      if (!currentSavingsId) {
+        document.getElementById('currentBalanceDisplay').textContent = 'Rp 0';
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(balance) {
+        document.getElementById('currentBalanceDisplay').textContent = 'Rp ' + balance.toLocaleString('id-ID');
+      }).getBalance(currentSavingsId);
+    }
+
+    function submitTransaction(e) {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = '⏳ Memproses...';
+
+      const data = {
+        studentId: document.getElementById('txStudentId').value,
+        savingsId: currentSavingsId,
+        jenis: document.getElementById('txType').value,
+        jumlah: parseInt(document.getElementById('txAmount').value),
+        catatan: document.getElementById('txNote').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showMessage(result.message, result.success ? 'success' : 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Proses Transaksi';
+
+          if (result.success) {
+            updateCurrentBalance();
+            e.target.reset();
+          }
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Proses Transaksi';
+        })
+        .addTransaction(data);
+    }
+
+    function resetTransactionForm() {
+      document.getElementById('transaction-form').reset();
+      currentSavingsId = '';
+      document.getElementById('savingsId').value = '';
+      document.getElementById('currentBalanceDisplay').textContent = 'Rp 0';
+    }
+
+    // Edit Student
+    function searchStudentForEdit() {
+      const query = document.getElementById('searchStudentEdit').value.toLowerCase();
+      if (query.length < 2) return;
+
+      google.script.run.withSuccessHandler(function(students) {
+        const filtered = students.filter(s =>
+          s.nama.toLowerCase().includes(query) ||
+          s.id.toLowerCase().includes(query)
+        );
+
+        if (filtered.length > 0) {
+          document.getElementById('editStudentId').value = filtered[0].id;
+          document.getElementById('editNama').value = filtered[0].nama;
+          document.getElementById('editKelasId').value = filtered[0].kelasId || '';
+          document.getElementById('editStatus').value = filtered[0].status;
+          document.getElementById('editTanggalLahir').value = filtered[0].tanggalLahir || '';
+          document.getElementById('editEmail').value = filtered[0].email || '';
+          document.getElementById('editNoHP').value = filtered[0].noHP || '';
+          document.getElementById('editStudentForm').style.display = 'block';
+        }
+      }).getStudents();
+    }
+
+    function findStudentForEdit() {
+      searchStudentForEdit();
+    }
+
+    function saveStudentEdit(e) {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = '⏳ Menyimpan...';
+
+      const id = document.getElementById('editStudentId').value;
+      const data = {
+        nama: document.getElementById('editNama').value,
+        kelasId: document.getElementById('editKelasId').value,
+        tanggalLahir: document.getElementById('editTanggalLahir').value,
+        email: document.getElementById('editEmail').value,
+        noHP: document.getElementById('editNoHP').value,
+        status: document.getElementById('editStatus').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showMessage(result.message, result.success ? 'success' : 'error');
+          btn.disabled = false;
+          btn.textContent = '💾 Simpan Perubahan';
+
+          if (result.success) {
+            document.getElementById('editStudentForm').style.display = 'none';
+            document.getElementById('searchStudentEdit').value = '';
+          }
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '💾 Simpan Perubahan';
+        })
+        .updateStudent(id, data);
+    }
+
+    function cancelEdit() {
+      document.getElementById('editStudentForm').style.display = 'none';
+      document.getElementById('searchStudentEdit').value = '';
+      document.getElementById('edit-student-form').reset();
+    }
+
+    // Progress Form
+    function submitProgress(e) {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = '⏳ Menyimpan...';
+
+      const data = {
+        studentId: document.getElementById('progressStudentId').value,
+        mapel: document.getElementById('progressMapel').value,
+        topik: document.getElementById('progressTopik').value,
+        nilai: parseFloat(document.getElementById('progressNilai').value) || 0,
+        deskripsi: document.getElementById('progressDeskripsi').value,
+        guru: document.getElementById('progressGuru').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showMessage(result.message, 'success');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Progres';
+          e.target.reset();
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Simpan Progres';
+        })
+        .addProgress(data);
+    }
+
+    function resetProgressForm() {
+      document.getElementById('progress-form').reset();
+    }
+
+    // Initialize on load
+    window.onload = function() {
+      showTab('setup-tab', document.querySelector('.tab'));
+    };
+  </script>
+</body>
+</html>
