@@ -41,8 +41,11 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 | `index.html` | Form UI (dialog dalam spreadsheet) |
 | `index_web.html` | UI Web App (responsif, via URL) |
 | `login.html` | Halaman login web app |
-| `appsscript.json` | Konfigurasi manifest |
 | `README.md` | Dokumentasi ini |
+
+> 📝 **Catatan:** Project ini tidak menyertakan file `appsscript.json`. Apps Script
+> membuatnya otomatis. Setelah paste kode, cukup set **timezone ke Jakarta** lewat
+> Project Settings (lihat Langkah 7).
 
 ---
 
@@ -88,16 +91,20 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 > ⚠️ **Penting:** Nama file harus persis sama (huruf kecil, tanpa spasi) karena dipanggil dari kode:
 > `index` → dialog spreadsheet, `index_web` → web app, `login` → halaman login.
 
-**Langkah 7: Aktifkan & Copy `appsscript.json`**
+**Langkah 7: Set Timezone Jakarta (Pengganti appsscript.json)**
 1. Di editor, klik ikon **⚙️ Project Settings** (roda gigi, sidebar kiri)
-2. Centang **Show "appsscript.json" manifest file in editor**
-3. Kembali ke ikon **</> Editor**
-4. File `appsscript.json` sekarang muncul di daftar file — klik
-5. Hapus isinya, paste **seluruh isi** file `appsscript.json` dari project ini
-6. Simpan (`Ctrl+S` / `Cmd+S`)
+2. Scroll ke bagian **General settings**
+3. Pada dropdown **Time zone**, pilih **(GMT+07:00) Jakarta**
+4. Selesai — tidak perlu edit file manifest
 
-> 📄 File ini berisi konfigurasi timezone `Asia/Jakarta` dan daftar izin (OAuth scopes)
-> untuk Sheets, Gmail, Drive, Docs, Trigger, dan UrlFetch.
+> 📄 Tidak ada `appsscript.json` di project ini — Apps Script membuat dan mengelola
+> manifest-nya sendiri. Daftar izin (OAuth scopes) juga **dideteksi otomatis** dari
+> API yang dipakai kode (`SpreadsheetApp`, `MailApp`, `DriveApp`, dll) saat pertama
+> kali otorisasi.
+>
+> ⏰ **Kenapa timezone penting:** trigger laporan otomatis ("setiap tanggal 1 jam
+> 08:00") mengikuti timezone project. Kalau tidak di-set, jam eksekusi bisa tidak
+> sesuai waktu Indonesia.
 
 ### 📌 Bagian 3 — Konfigurasi Awal
 
@@ -162,8 +169,8 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 - [ ] Spreadsheet baru dibuat
 - [ ] `Code.gs` di-paste
 - [ ] File HTML dibuat: `index`, `index_web`, `login`
-- [ ] Manifest diaktifkan & `appsscript.json` di-paste
 - [ ] `ALLOWED_USERS` diganti dengan email kamu
+- [ ] Timezone di-set ke **(GMT+07:00) Jakarta** di Project Settings
 - [ ] `setupSheets` di-Run + otorisasi berhasil
 - [ ] Menu **LMS & Tabungan** muncul di spreadsheet
 - [ ] Web app di-deploy & URL bisa dibuka
@@ -221,7 +228,8 @@ Setelah setup, klik menu **LMS & Tabungan** di toolbar spreadsheet.
 
 ## 🔐 Hak Akses & Izin
 
-Saat pertama kali Run, script meminta izin berikut (sesuai `appsscript.json`):
+Saat pertama kali Run, Google otomatis mendeteksi dan meminta izin berikut
+(sesuai API yang dipakai kode):
 
 | Izin | Dipakai Untuk |
 |------|---------------|
@@ -283,7 +291,7 @@ Saat input absensi/transaksi, centang **💬 Kirim notifikasi WhatsApp** dan pes
 | Menu **LMS & Tabungan** tidak muncul | Refresh spreadsheet (F5), tunggu 10 detik. Kalau masih belum, pastikan `Code.gs` tersimpan (✓ oranye di editor berarti belum disimpan) |
 | Error `Script function not found: setupSheets` | Pastikan `Code.gs` ter-paste utuh, lalu jalankan `setupSheets` dari dropdown editor |
 | Peringatan "unverified app / unsafe" | Normal untuk script sendiri — klik **Advanced** → **Go to project (unsafe)** → **Allow** |
-| Error saat menyimpan `appsscript.json` | Pastikan opsi *Show manifest file* sudah dicentang di **Project Settings**, dan format JSON benar (tidak ada koma berlebih) |
+| Timezone belum di-set / laporan otomatis jam-nya salah | Buka **Project Settings → General settings → Time zone** → pilih **(GMT+07:00) Jakarta** |
 | Web app tampil halaman kosong / error | Pastikan 3 file HTML bernama persis `index`, `index_web`, `login` (lihat sidebar editor) |
 | Web app masih kode lama setelah edit | **Deploy → Manage deployments → Edit → New version** |
 | Login ditolak "email tidak terdaftar" | Tambahkan email tersebut ke `ALLOWED_USERS` di `Code.gs`, simpan, lalu **New version** deploy |
@@ -315,4 +323,3 @@ Jika ada pertanyaan atau perlu fitur tambahan, buka **Bantuan** dari menu atau e
 ---
 
 **Made with ❤️ using Google Apps Script**
-# student-course-finance

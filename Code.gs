@@ -61,7 +61,7 @@ function setupSheets() {
   // Create Murid sheet
   if (!ss.getSheetByName(CONFIG.STUDENTS_SHEET)) {
     const studentsSheet = ss.insertSheet(CONFIG.STUDENTS_SHEET);
-    studentsSheet.getDataRange().setValues([
+    studentsSheet.getRange(1, 1, 1, 9).setValues([
       ['ID Murid', 'Nama', 'Kelas ID', 'Tanggal Lahir', 'Email Orang Tua', 'No HP', 'Status', 'Tanggal Daftar', 'ID Tabungan']
     ]);
     studentsSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#4285F4').setFontColor('white');
@@ -70,7 +70,7 @@ function setupSheets() {
   // Create Kelas sheet
   if (!ss.getSheetByName(CONFIG.CLASSES_SHEET)) {
     const classesSheet = ss.insertSheet(CONFIG.CLASSES_SHEET);
-    classesSheet.getDataRange().setValues([
+    classesSheet.getRange(1, 1, 1, 7).setValues([
       ['ID Kelas', 'Nama Kelas', 'Guru', 'Jadwal', 'Kapasitas', 'Biaya Bulanan', 'Status']
     ]);
     classesSheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#34A853').setFontColor('white');
@@ -79,7 +79,7 @@ function setupSheets() {
   // Create Absensi sheet
   if (!ss.getSheetByName(CONFIG.ATTENDANCE_SHEET)) {
     const attendanceSheet = ss.insertSheet(CONFIG.ATTENDANCE_SHEET);
-    attendanceSheet.getDataRange().setValues([
+    attendanceSheet.getRange(1, 1, 1, 7).setValues([
       ['ID Absensi', 'ID Murid', 'Tanggal', 'Status', 'Catatan', 'Waktu Check-in', 'Waktu Check-out']
     ]);
     attendanceSheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#FBBC05').setFontColor('black');
@@ -88,7 +88,7 @@ function setupSheets() {
   // Create Progres sheet
   if (!ss.getSheetByName(CONFIG.PROGRESS_SHEET)) {
     const progressSheet = ss.insertSheet(CONFIG.PROGRESS_SHEET);
-    progressSheet.getDataRange().setValues([
+    progressSheet.getRange(1, 1, 1, 8).setValues([
       ['ID Progres', 'ID Murid', 'Mata Pelajaran', 'Topik', 'Nilai', 'Deskripsi', 'Tanggal', 'Guru']
     ]);
     progressSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
@@ -97,7 +97,7 @@ function setupSheets() {
   // Create Tabungan sheet
   if (!ss.getSheetByName(CONFIG.SAVINGS_SHEET)) {
     const savingsSheet = ss.insertSheet(CONFIG.SAVINGS_SHEET);
-    savingsSheet.getDataRange().setValues([
+    savingsSheet.getRange(1, 1, 1, 8).setValues([
       ['ID Tabungan', 'ID Murid', 'Saldo Awal', 'Total Setoran', 'Total Penarikan', 'Saldo Saat Ini', 'Tanggal Buka', 'Status']
     ]);
     savingsSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#0F9D58').setFontColor('white');
@@ -106,7 +106,7 @@ function setupSheets() {
   // Create Transaksi sheet
   if (!ss.getSheetByName(CONFIG.TRANSACTIONS_SHEET)) {
     const transactionsSheet = ss.insertSheet(CONFIG.TRANSACTIONS_SHEET);
-    transactionsSheet.getDataRange().setValues([
+    transactionsSheet.getRange(1, 1, 1, 9).setValues([
       ['ID Transaksi', 'ID Tabungan', 'ID Murid', 'Jenis', 'Jumlah', 'Saldo Setelah', 'Catatan', 'Tanggal', 'Waktu']
     ]);
     transactionsSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FF6D01').setFontColor('white');
@@ -115,12 +115,11 @@ function setupSheets() {
   // Create Settings sheet
   if (!ss.getSheetByName(CONFIG.SETTINGS_SHEET)) {
     const settingsSheet = ss.insertSheet(CONFIG.SETTINGS_SHEET);
-    settingsSheet.getDataRange().setValues([
+    settingsSheet.getRange(1, 1, 4, 2).setValues([
       ['Parameter', 'Nilai'],
       ['Nama Sekolah', ''],
       ['Guru Pengampu', ''],
-      ['Tahun Ajaran', ''],
-      ['Status OTP', 'Aktif']
+      ['Tahun Ajaran', '']
     ]);
     settingsSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#607D8B').setFontColor('white');
   }
@@ -150,10 +149,10 @@ function addStudent(data) {
   const students = sheet.getDataRange().getValues();
 
   // Generate ID Murid
-  const studentId = 'S-' + Date.now().toString(36).toUpperCase();
+  const studentId = genId('S');
 
   // Generate ID Tabungan
-  const savingsId = 'TAB-' + Date.now().toString(36).toUpperCase();
+  const savingsId = genId('TAB');
 
   // Get class info if class ID provided
   let className = '';
@@ -330,7 +329,7 @@ function addClass(data) {
   const sheet = ss.getSheetByName(CONFIG.CLASSES_SHEET);
   const classes = sheet.getDataRange().getValues();
 
-  const classId = 'K-' + Date.now().toString(36).toUpperCase();
+  const classId = genId('K');
 
   const newRow = [
     classId,
@@ -453,7 +452,7 @@ function recordAttendance(data) {
     }
   }
 
-  const id = 'ABS-' + Date.now().toString(36).toUpperCase();
+  const id = genId('ABS');
   const status = data.status || 'Hadir';
   const checkIn = data.checkIn || new Date();
   const checkOut = data.status === 'Sakit' || data.status === 'Izin' ? '' : '';
@@ -586,7 +585,7 @@ function addProgress(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.PROGRESS_SHEET);
 
-  const id = 'PRG-' + Date.now().toString(36).toUpperCase();
+  const id = genId('PRG');
 
   sheet.appendRow([
     id,
@@ -722,7 +721,7 @@ function addTransaction(data) {
   }
 
   // Create transaction ID
-  const transactionId = 'TRX-' + Date.now().toString(36).toUpperCase();
+  const transactionId = genId('TRX');
 
   // Add transaction
   transactionsSheet.appendRow([
@@ -737,23 +736,17 @@ function addTransaction(data) {
     new Date()
   ]);
 
-  // Update savings balance
-  savingsSheet.getRange(savingsRow, 3).setValue(currentBalance + (data.jenis === 'Setoran' ? amount : 0));
-  savingsSheet.getRange(savingsRow, 4).setValue(currentBalance + (data.jenis === 'Setoran' ? amount : 0));
-  savingsSheet.getRange(savingsRow, 5).setValue(currentBalance + (data.jenis === 'Penarikan' ? amount : 0));
-  savingsSheet.getRange(savingsRow, 6).setValue(newBalance);
-
-  // Update deposit/withdrawal totals
-  const depositCol = 3;
-  const withdrawalCol = 4;
-
+  // Update totals & saldo di sheet Tabungan
+  // Kolom: C=Saldo Awal, D=Total Setoran, E=Total Penarikan, F=Saldo Saat Ini
+  // (Saldo Awal tidak boleh diubah oleh transaksi!)
   if (data.jenis === 'Setoran') {
-    const currentDeposit = savingsData[savingsRow - 1][depositCol] || 0;
-    savingsSheet.getRange(savingsRow, depositCol + 1).setValue(currentDeposit + amount);
+    const currentDeposit = Number(savingsData[savingsRow - 1][3]) || 0;
+    savingsSheet.getRange(savingsRow, 4).setValue(currentDeposit + amount);
   } else {
-    const currentWithdrawal = savingsData[savingsRow - 1][withdrawalCol] || 0;
-    savingsSheet.getRange(savingsRow, withdrawalCol + 1).setValue(currentWithdrawal + amount);
+    const currentWithdrawal = Number(savingsData[savingsRow - 1][4]) || 0;
+    savingsSheet.getRange(savingsRow, 5).setValue(currentWithdrawal + amount);
   }
+  savingsSheet.getRange(savingsRow, 6).setValue(newBalance);
 
   // Kirim notifikasi email ke orang tua (jika diminta)
   let notifMsg = '';
@@ -1023,7 +1016,12 @@ function getRecentTransactions(limit) {
   const studentMap = {};
   students.slice(1).forEach(s => studentMap[s[0]] = s[1]);
 
-  return transactions.slice(1).slice(0, limit).reverse().map(row => ({
+  // Sort by waktu terbaru dulu (bukan urutan baris di sheet), lalu ambil `limit`
+  return transactions.slice(1)
+    .sort((a, b) => new Date(b[8]) - new Date(a[8]))
+    .slice(0, limit)
+    .reverse()
+    .map(row => ({
     nama: studentMap[row[2]] || '-',
     jenis: row[3],
     jumlah: row[4],
@@ -1066,7 +1064,17 @@ function showHelp() {
   SpreadsheetApp.getUi().alert(helpText);
 }
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== HELPERS ====================
+/**
+ * Generate ID unik. Date.now() saja bisa bentrok jika 2 aksi terjadi
+ * di milidetik yang sama, jadi ditambah suffix acak.
+ */
+function genId(prefix) {
+  const time = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return prefix + '-' + time + rand;
+}
+
 function formatCurrency(amount) {
   return Number(amount).toLocaleString('id-ID');
 }
