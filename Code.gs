@@ -254,7 +254,7 @@ function addStudent(data) {
   return { success: true, studentId, savingsId, message: 'Murid berhasil ditambahkan!' };
 }
 
-function getStudents() {
+function readStudentsRaw() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.STUDENTS_SHEET);
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
@@ -399,7 +399,7 @@ function addClass(data) {
   return { success: true, classId, message: 'Kelas berhasil ditambahkan!' };
 }
 
-function getClasses() {
+function readClassesRaw() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.CLASSES_SHEET);
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
@@ -413,6 +413,13 @@ function getClasses() {
     biaya: row[5],
     status: row[6]
   }));
+}
+
+/**
+ * Endpoint client utk halaman Kelas — lewat cache 2 menit.
+ */
+function getClasses() {
+  return getCachedClasses();
 }
 
 function showClassList() {
@@ -477,11 +484,23 @@ function showUserList() {
  */
 function getUsers() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(CONFIG.USERS_SHEET);
+  let sheet = ss.getSheetByName(CONFIG.USERS_SHEET);
+
+  // Toleran kapitalisasi/spasi: cari sheet yang mirip 'Users' (mis. 'users', 'USER ')
+  if (!sheet) {
+    const lower = CONFIG.USERS_SHEET.toLowerCase();
+    sheet = ss.getSheets().find(s => s.getName().trim().toLowerCase() === lower);
+  }
   if (!sheet) return [];
 
   const data = sheet.getDataRange().getValues();
-  return data.slice(1).filter(r => r[0])
+  if (data.length <= 1) return [];
+
+  // Auto-heal: baris pertama bukan header (mis. header terhapus) → jangan buang baris pertama
+  const first = String(data[0][0] || '').trim().toLowerCase();
+  const rows = (first === 'email') ? data.slice(1) : data;
+
+  return rows.filter(r => r[0])
     .map(r => ({
       email: String(r[0]).trim(),
       nama: r[1],
@@ -489,6 +508,56 @@ function getUsers() {
       status: r[3] || 'Aktif',
       dibuat: r[4]
     }));
+}
+
+/**
+ * Diagnosa sheet Users — dipanggil halaman Users saat daftar kosong.
+ * Menjelaskan KENAPA kosong: sheet hilang / header aneh / betul-betul belum ada isi.
+ */
+function debugUsersInfo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.USERS_SHEET);
+  const sheetNames = ss.getSheets().map(s => s.getName());
+
+  if (!sheet) {
+    const lower = CONFIG.USERS_SHEET.toLowerCase();
+    sheet = ss.getSheets().find(s => s.getName().trim().toLowerCase() === lower) || null;
+  }
+  if (!sheet) {
+    return { found: false, expectedName: CONFIG.USERS_SHEET, sheetNames: sheetNames,
+      message: 'Sheet "' + CONFIG.USERS_SHEET + '" tidak ditemukan. Jalankan setupSheets.' };
+  }
+
+  // Baca EXACTLY seperti getUsers() — supaya diagnosa = realita
+  const data = sheet.getDataRange().getValues();
+  const header = (data.length ? String(data[0][0] || '').trim().toLowerCase() : '');
+  const bodyRows = (header === 'email') ? data.slice(1) : data;
+
+  // Dump isi kolom A-C tiap baris data (maks 5) — kelihatan persis apa yang server lihat
+  const dump = [];
+  const cell = (v) => {
+    const s = String(v === null || v === undefined ? '' : v).trim();
+    return s === '' ? '(kosong)' : s.substring(0, 30);
+  };
+  for (let i = 0; i < Math.min(5, bodyRows.length); i++) {
+    const r = bodyRows[i] || [];
+    dump.push('Baris ' + (i + 2) + ' — A: ' + cell(r[0]) + ' · B: ' + cell(r[1]) + ' · C: ' + cell(r[2]));
+  }
+
+  const withEmail = bodyRows.filter(r => r[0]).length;
+
+  return {
+    found: true,
+    name: sheet.getName(),
+    totalRows: data.length,
+    parsedCount: withEmail,
+    headerOk: header === 'email',
+    dump: dump,
+    sheetNames: sheetNames,
+    message: withEmail > 0
+      ? 'Sheet terisi & ' + withEmail + ' user terbaca normal.'
+      : 'Sheet ada (' + data.length + ' baris) tapi TIDAK ADA satu pun yang punya isi di kolom A (Email). Lihat rincian per baris di bawah — kemungkinan email tertulis di kolom yang salah, atau barisnya cuma sisa format.'
+  };
 }
 
 /**
@@ -1442,16 +1511,25 @@ function invalidateDataCache() {
 function getCachedStudents() {
   let students = cacheGet('students');
   if (!students) {
-    students = getStudents();
+    students = readStudentsRaw();
     cachePut('students', students);
   }
   return students;
 }
 
+/**
+ * Endpoint client utk halaman Murid — lewat cache 2 menit.
+ * Sebelumnya memanggil baca mentah (bypass cache) → halaman Murid
+ * membaca ulang sheet di SETIAP klik (1-3 dtk per buka).
+ */
+function getStudents() {
+  return getCachedStudents();
+}
+
 function getCachedClasses() {
   let classes = cacheGet('classes');
   if (!classes) {
-    classes = getClasses();
+    classes = readClassesRaw();
     cachePut('classes', classes);
   }
   return classes;

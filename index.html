@@ -1460,6 +1460,36 @@
       }
     }
 
+    // Segarkan semua snapshot halaman di belakang layar (stale-while-revalidate).
+    // Dipanggil setelah aksi tulis sukses: tampilan tetap instan dari data terakhir,
+    // hasil segar dari server menimpa otomatis begitu datanya tiba.
+    function revalidateAll() {
+      const jobs = [
+        ['dashboard', getDashboardData],
+        ['students', getStudents],
+        ['classes', getClasses],
+        ['attendance', getAttendanceToday],
+        ['savings', getSavingsAccounts],
+        ['transactions', getAllTransactions],
+        ['users', getUsers]
+      ];
+      jobs.forEach(([kind, fn]) => {
+        if (!getPageCache(kind)) return; // halaman belum pernah dibuka → biarkan load normal
+        google.script.run
+          .withSuccessHandler((data) => {
+            setPageCache(kind, data);
+            const renderers = {
+              dashboard: renderDashboard, students: renderStudents, classes: renderClasses,
+              attendance: renderAttendance, savings: renderSavings,
+              transactions: renderTransactions, users: renderUsers
+            };
+            if (state.currentPage === kind && renderers[kind]) renderers[kind](data, false);
+          })
+          .withFailureHandler(() => {})
+          [fn.name]();
+      });
+    }
+
     function showAlert(message, type = 'success') {
       const alerts = document.querySelectorAll('.alert');
       alerts.forEach(a => a.remove());
@@ -1470,10 +1500,10 @@
       document.getElementById('content').prepend(alert);
       setTimeout(() => alert.remove(), 4000);
 
-      // Data berubah → buang snapshot halaman terkait supaya navigasi
-      // berikutnya render data segar (stale cache tidak tampil).
+      // Data berubah → segarkan snapshot di belakang layar (stale-while-revalidate).
+      // Navigasi tetap instan dari data terakhir; hasil segar menimpa otomatis.
       if (type === 'success') {
-        invalidatePageCache('dashboard', 'savings', 'transactions', 'students', 'attendance', 'classes', 'users');
+        revalidateAll();
       }
     }
 
@@ -2750,7 +2780,6 @@
       google.script.run
         .withSuccessHandler((result) => {
           if (result.success) {
-            invalidatePageCache('attendance', 'dashboard');
             showAlert(result.message, 'success');
           } else {
             removeOptimistic('attendance', tempId);
@@ -2841,7 +2870,6 @@
       google.script.run
         .withSuccessHandler((result) => {
           showAlert(result.message, result.success ? 'success' : 'error');
-          if (result.success) invalidatePageCache('dashboard');
         })
         .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
         .addProgress(data);
@@ -3244,7 +3272,7 @@
       google.script.run
         .withSuccessHandler((result) => {
           if (result.success) {
-            invalidatePageCache('savings', 'transactions', 'dashboard');
+            // showAlert('success') di bawah otomatis memicu revalidateAll
           } else {
             removeOptimistic('transactions', window._txTempId);
             invalidatePageCache('savings');
@@ -3366,7 +3394,7 @@
       google.script.run
         .withSuccessHandler((result) => {
           if (result.success) {
-            invalidatePageCache('savings', 'transactions', 'dashboard');
+            // showAlert('success') di bawah otomatis memicu revalidateAll
           } else {
             removeOptimistic('transactions', window._txTempId);
             invalidatePageCache('savings');
@@ -3424,6 +3452,27 @@
         .withSuccessHandler((users) => {
           setPageCache('users', users);
           renderUsers(users);
+          // Daftar kosong → minta diagnosa server: kenapa kosong?
+          if (!users || !users.length) {
+            google.script.run
+              .withSuccessHandler((dbg) => {
+                const el = document.getElementById('users-debug');
+                if (el && dbg) {
+                  const tipe = !dbg.found ? 'error' : (dbg.parsedCount > 0 ? 'success' : 'error');
+                  let html = '<div class="alert alert-' + tipe + '" style="margin-bottom:0;">' +
+                    '🔍 <strong>Diagnosa:</strong> ' + dbg.message;
+                  if (dbg.dump && dbg.dump.length) {
+                    html += '<div style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.06); border-radius:6px; font-family:monospace; font-size:0.78rem; white-space:pre-line;">' +
+                      dbg.dump.join('\n') + '</div>';
+                  }
+                  html += '<br><span style="font-size:0.8rem;">Sheet di file yang terhubung: <strong>' +
+                    (dbg.sheetNames || []).join(', ') + '</strong></span></div>';
+                  el.innerHTML = html;
+                }
+              })
+              .withFailureHandler(() => {})
+              .debugUsersInfo();
+          }
         })
         .withFailureHandler(handleError)
         .getUsers();
@@ -3465,6 +3514,7 @@
                 <div class="icon">👥</div>
                 <p>Belum ada user terdaftar.<br>Sistem fallback ke <code>ALLOWED_USERS</code> di Code.gs.</p>
               </div>
+              <div id="users-debug" style="margin-top:15px;"></div>
             ` : `
               <div class="table-wrapper">
                 <table>
@@ -3521,13 +3571,23 @@
       };
       if (!data.email) { showAlert('Email wajib diisi!', 'error'); return; }
 
+      // ⚡ Optimistic: user langsung tampil di daftar; server konfirmasi menyusul
+      window._uTempId = 'TMP-U-' + Date.now();
+      applyOptimistic('users', window._uTempId, (list) => {
+        list.push({ email: data.email, nama: data.nama, peran: data.peran, status: data.status });
+      });
+      closeModal();
+      showAlert('⏳ Menyimpan user...', 'info');
+
       google.script.run
         .withSuccessHandler((result) => {
-          closeModal();
+          if (!result.success) removeOptimistic('users', window._uTempId);
           showAlert(result.message, result.success ? 'success' : 'error');
-          if (result.success) loadUsers();
         })
-        .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
+        .withFailureHandler((err) => {
+          removeOptimistic('users', window._uTempId);
+          showAlert('Error: ' + err.message, 'error');
+        })
         .addUser(data);
     }
 
