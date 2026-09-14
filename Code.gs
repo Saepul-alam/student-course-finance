@@ -633,20 +633,20 @@ function recordAttendance(data) {
     checkOut
   ]);
 
-  // Kirim notifikasi email ke orang tua (jika diminta)
-  let notifMsg = '';
-  if (data.notifyParent) {
-    const notif = sendAbsensiNotification(data.studentId, status, data.catatan);
-    notifMsg = notif.success ? ' Notifikasi email terkirim ke orang tua.' : ' (' + notif.message + ')';
-  }
-  
-  // Kirim notifikasi WhatsApp ke orang tua (jika diminta & aktif)
-  if (data.notifyWhatsApp) {
-    const waNotif = sendAbsensiWhatsApp(data.studentId, status, data.catatan);
-    notifMsg += waNotif.success ? ' WhatsApp terkirim.' : ' [WA: ' + waNotif.message + ']';
+  // Notifikasi email/WA TIDAK dikirim di sini (asinkron via antrean) —
+  // simpan absensi selesai < 1 detik; notifikasi menyusul lewat trigger.
+  if (data.notifyParent || data.notifyWhatsApp) {
+    queueNotification('attendance', {
+      studentId: data.studentId,
+      status: status,
+      catatan: data.catatan || '',
+      notifyParent: !!data.notifyParent,
+      notifyWhatsApp: !!data.notifyWhatsApp
+    });
+    return { success: true, message: 'Absensi berhasil dicatat! Notifikasi sedang dikirim ke orang tua...' };
   }
 
-  return { success: true, message: 'Absensi berhasil dicatat!' + notifMsg };
+  return { success: true, message: 'Absensi berhasil dicatat!' };
 }
 
 function getAttendanceToday() {
@@ -911,26 +911,100 @@ function addTransaction(data) {
   }
   savingsSheet.getRange(savingsRow, 6).setValue(newBalance);
 
-  // Kirim notifikasi email ke orang tua (jika diminta)
-  let notifMsg = '';
-  if (data.notifyParent) {
-    const notif = sendTabunganNotification(data.studentId, data.jenis, amount, newBalance, data.catatan);
-    notifMsg = notif.success ? ' Notifikasi email terkirim ke orang tua.' : ' (' + notif.message + ')';
-  }
-  
-  // Kirim notifikasi WhatsApp ke orang tua (jika diminta & aktif)
-  if (data.notifyWhatsApp) {
-    const waNotif = sendTabunganWhatsApp(data.studentId, data.jenis, amount, newBalance, data.catatan);
-    notifMsg += waNotif.success ? ' WhatsApp terkirim.' : ' [WA: ' + waNotif.message + ']';
+  // Notifikasi TIDAK dikirim di sini (asinkron via antrean) —
+  // transaksi selesai < 1 detik; email/WA menyusul lewat trigger.
+  if (data.notifyParent || data.notifyWhatsApp) {
+    queueNotification('transaction', {
+      studentId: data.studentId,
+      jenis: data.jenis,
+      jumlah: amount,
+      saldo: newBalance,
+      catatan: data.catatan || '',
+      notifyParent: !!data.notifyParent,
+      notifyWhatsApp: !!data.notifyWhatsApp
+    });
+    return {
+      success: true,
+      message: `${data.jenis} berhasil! Saldo saat ini: Rp ${formatCurrency(newBalance)}. Notifikasi sedang dikirim ke orang tua...`,
+      newBalance
+    };
   }
 
   return {
     success: true,
-    message: `${data.jenis} berhasil! Saldo saat ini: Rp ${formatCurrency(newBalance)}.${notifMsg}`,
+    message: `${data.jenis} berhasil! Saldo saat ini: Rp ${formatCurrency(newBalance)}`,
     newBalance
   };
   } finally {
     lock.releaseLock();
+  }
+}
+
+// ==================== NOTIFICATION QUEUE (ASINKRON) ====================
+// Email/WA butuh 1-3 detik per kirim. Agar input user tidak menunggu,
+// notifikasi masuk antrean lalu diproses trigger tiap 1 menit.
+// Trigger dibuat hanya saat ada antrean & auto-hapus saat kosong (hemat kuota).
+const NOTIF_QKEY = 'notifq';
+
+function queueNotification(type, payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const q = cacheGet(NOTIF_QKEY) || [];
+    q.push({ type: type, payload: payload });
+    cachePut(NOTIF_QKEY, q);
+  } finally {
+    lock.releaseLock();
+  }
+  ensureNotifTrigger();
+}
+
+function ensureNotifTrigger() {
+  const exists = ScriptApp.getProjectTriggers()
+    .some(t => t.getHandlerFunction() === 'processNotificationQueue');
+  if (!exists) {
+    ScriptApp.newTrigger('processNotificationQueue').timeBased().everyMinutes(1).create();
+  }
+}
+
+function deleteNotifTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'processNotificationQueue') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+}
+
+/**
+ * Dipanggil trigger tiap 1 menit selama ada antrean.
+ * Gagal kirim dicatat ke Log Laporan, tidak mengulang (hindari dobel-kirim).
+ */
+function processNotificationQueue() {
+  const q = cacheGet(NOTIF_QKEY) || [];
+  if (q.length === 0) {
+    deleteNotifTrigger();
+    return;
+  }
+
+  q.forEach(item => {
+    try {
+      sendNotificationByType(item.type, item.payload);
+    } catch (e) {
+      try { logReportRun('NOTIF GAGAL', item.type + ': ' + e.message); } catch (e2) {}
+    }
+  });
+
+  CacheService.getScriptCache().remove(NOTIF_QKEY);
+  deleteNotifTrigger();
+}
+
+function sendNotificationByType(type, p) {
+  if (type === 'attendance') {
+    if (p.notifyParent) sendAbsensiNotification(p.studentId, p.status, p.catatan);
+    if (p.notifyWhatsApp) sendAbsensiWhatsApp(p.studentId, p.status, p.catatan);
+  } else if (type === 'transaction') {
+    if (p.notifyParent) sendTabunganNotification(p.studentId, p.jenis, p.jumlah, p.saldo, p.catatan);
+    if (p.notifyWhatsApp) sendTabunganWhatsApp(p.studentId, p.jenis, p.jumlah, p.saldo, p.catatan);
   }
 }
 
@@ -1257,7 +1331,10 @@ function cachePut(key, value) {
 }
 
 function invalidateDataCache() {
-  CacheService.getScriptCache().removeAll(['students', 'classes', 'savings_accounts', 'users']);
+  CacheService.getScriptCache().removeAll([
+    'students', 'classes', 'savings_accounts', 'users_v5',
+    'savings_list', 'transactions_all'
+  ]);
 }
 
 function getCachedStudents() {
@@ -1279,12 +1356,15 @@ function getCachedClasses() {
 }
 
 function getCachedUsers() {
-  let users = cacheGet('users');
+  // TTL 5 menit (key khusus) — daftar user jarang berubah
+  let users = CacheService.getScriptCache().get('users_v5');
   if (!users) {
-    users = getUsers();
-    cachePut('users', users);
+    users = JSON.stringify(getUsers());
+    try {
+      CacheService.getScriptCache().put('users_v5', users, 300);
+    } catch (e) { /* cache penuh — abaikan */ }
   }
-  return users;
+  return JSON.parse(users);
 }
 
 /**
@@ -2711,19 +2791,25 @@ function getDashboardDataStats() {
 }
 
 function getSavingsAccounts() {
+  // Cache 2 menit — dibuang otomatis setiap transaksi/murid berubah (invalidateDataCache)
+  let accounts = cacheGet('savings_list');
+  if (accounts) return accounts;
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SAVINGS_SHEET);
   const data = sheet.getDataRange().getValues();
   const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
-  return data.slice(1).map(row => ({
+  accounts = data.slice(1).map(row => ({
     id: row[0],
     studentId: row[1],
     balance: row[5] || 0,
     status: row[7],
     studentName: studentMap[row[1]] || '-'
   }));
+  cachePut('savings_list', accounts);
+  return accounts;
 }
 
 
@@ -2794,13 +2880,17 @@ function getAttendanceHistory() {
 }
 
 function getAllTransactions() {
+  // Cache 2 menit — dibuang otomatis oleh addTransaction (invalidateDataCache)
+  let transactions = cacheGet('transactions_all');
+  if (transactions) return transactions;
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.TRANSACTIONS_SHEET);
   const data = sheet.getDataRange().getValues();
   const students = getCachedStudents();
   const studentMap = {};
   students.forEach(s => studentMap[s.id] = s.nama);
   
-  return data.slice(1).map(row => ({
+  transactions = data.slice(1).map(row => ({
     id: row[0],
     savingsId: row[1],
     studentId: row[2],
@@ -2811,6 +2901,8 @@ function getAllTransactions() {
     catatan: row[6],
     tanggal: row[7]
   })).sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  cachePut('transactions_all', transactions);
+  return transactions;
 }
 
 function getClassById(id) {

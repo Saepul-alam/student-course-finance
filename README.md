@@ -26,6 +26,7 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 - ✅ **Manajemen User** - Tambah/edit/hapus user login dari web app (khusus Admin)
 - ✅ **Laporan Otomatis Bulanan** - PDF terkirim otomatis tiap tanggal 1 + arsip Drive
 - ✅ **Grafik Tren Saldo** - Line chart 7/30/90 hari di dashboard (SVG, tanpa library)
+- ✅ **Performa Optimal** - Cache 2 lapis (server + browser), navigasi instan (stale-while-revalidate), progress bar tipis
 
 ### 🔗 Integrasi
 - Semua data terhubung melalui **ID Murid**
@@ -177,6 +178,19 @@ Sistem terintegrasi untuk **Lembaga Kursus/les** dan **Buku Tabungan Murid** men
 | 💬 **Notifikasi WhatsApp** | Web app → menu **WhatsApp** → daftar [fonnte.com](https://fonnte.com), tempel token, aktifkan, test kirim |
 | ⏰ **Laporan Otomatis Bulanan** | Web app → menu **Laporan** → bagian bawah → isi email penerima → **Simpan & Aktifkan** |
 | 📧 **Notifikasi Email Orang Tua** | Otomatis tersedia — cukup isi kolom **Email Orang Tua** di data murid, lalu centang notifikasi saat input |
+
+### ⚡ Catatan Performa
+
+Sistem dirancang agar terasa cepat:
+
+| Lapisan | Mekanisme | Durasi |
+|---------|-----------|--------|
+| Server (Apps Script) | `CacheService` untuk murid, kelas, users, saldo, transaksi | 2 menit (users 5 menit) |
+| Browser | Snapshot per halaman — navigasi merender instan, lalu data segar ditarik di belakang | Sampai aksi tulis berikutnya |
+
+- Cache server **otomatis dibuang** setiap ada perubahan data (tambah/edit/hapus) — selalu segar.
+- Setelah menyimpan data, banner ⚡ "tampil instan" akan muncul maksimal sekali per navigasi; klik **🔄 Refresh** di dashboard untuk menarik data paling baru kapan saja.
+- Jika mengedit data **langsung di spreadsheet** (di luar aplikasi), tunggu maksimal 2 menit atau klik Refresh.
 
 ---
 

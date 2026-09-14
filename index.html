@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1a73e8">
+  <!-- Status login di-inject server via doGet() template -->
+  <meta name="server-logged-in" content="<?!= JSON.stringify(loggedIn) ?>">
   <title>LMS & Tabungan</title>
   <style>
     :root {
@@ -568,6 +570,20 @@
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #aaa; }
 
+    /* Progress bar tipis saat loading (tidak mengganggu konten) */
+    #nav-progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      z-index: 3000;
+      transition: width 0.4s ease, opacity 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #nav-progress.active { opacity: 1; }
+
     /* ==================== LOGIN OVERLAY ==================== */
     .login-overlay {
       position: fixed;
@@ -655,6 +671,9 @@
   </style>
 </head>
 <body>
+  <!-- Progress bar loading tipis -->
+  <div id="nav-progress"></div>
+
   <!-- Header -->
   <header class="header">
     <h1>📚 LMS & Buku Tabungan</h1>
@@ -738,11 +757,70 @@
       currentPage: 'dashboard',
       students: [],
       classes: [],
+      pageCache: {},            // stale-while-revalidate per halaman
       loading: false
     };
 
-    // Status login di-inject oleh doGet() (HtmlService template) saat halaman dibuat.
-    const SERVER_LOGGED_IN = <?!= JSON.stringify(loggedIn) ?>;
+    // ==================== PAGE CACHE (stale-while-revalidate) ====================
+    // Render instan dari snapshot terakhir, lalu data segar diambil di belakang.
+    // Navigasi terasa 0 detik walaupun server butuh 1-2 detik.
+    function getPageCache(key) {
+      const entry = state.pageCache[key];
+      return entry ? entry.data : null;
+    }
+
+    function setPageCache(key, data) {
+      state.pageCache[key] = { data };
+    }
+
+    function invalidatePageCache(...keys) {
+      keys.forEach(k => delete state.pageCache[k]);
+    }
+
+    // ⚡ Optimistic UI: sisip/hapus baris sementara di cache halaman lalu
+    // render ulang segera — respon terasa < 0.1 detik. Server mengonfirmasi menyusul;
+    // jika ditolak, perubahan sementara dibuang otomatis.
+    function applyOptimistic(kind, tempId, patchFn) {
+      const cached = getPageCache(kind);
+      if (!cached) return;
+      patchFn(cached);
+      setPageCache(kind, cached);
+      if (state.currentPage === kind) {
+        const renderers = {
+          attendance: renderAttendance,
+          savings: renderSavings,
+          transactions: renderTransactions,
+          dashboard: renderDashboard
+        };
+        if (renderers[kind]) renderers[kind](cached, false);
+      }
+    }
+
+    function removeOptimistic(kind, tempId) {
+      const cached = getPageCache(kind);
+      if (!cached) return;
+      if (Array.isArray(cached)) {
+        const idx = cached.findIndex(x => x.id === tempId);
+        if (idx !== -1) cached.splice(idx, 1);
+      } else if (cached.savingsAccounts) {
+        const idx = cached.savingsAccounts.findIndex(x => x.id === tempId);
+        if (idx !== -1) cached.savingsAccounts.splice(idx, 1);
+      }
+      setPageCache(kind, cached);
+      if (state.currentPage === kind) {
+        const renderers = {
+          attendance: renderAttendance,
+          savings: renderSavings,
+          transactions: renderTransactions,
+          dashboard: renderDashboard
+        };
+        if (renderers[kind]) renderers[kind](cached, false);
+      }
+    }
+
+    // Status login di-inject server via meta tag (VSCode-friendly);
+    // JSON.stringify di scriptlet menghasilkan true/false valid untuk parsing JSON.
+    const SERVER_LOGGED_IN = JSON.parse(document.querySelector('meta[name="server-logged-in"]').content || 'false');
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
@@ -753,6 +831,48 @@
       initNavigation();
       loadDashboard();
     });
+
+    // Progress bar tipis: mulai saat navigasi, selesai saat render selesai
+    (function() {
+      const bar = document.getElementById('nav-progress');
+      window.startNavProgress = function() {
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        bar.classList.add('active');
+        requestAnimationFrame(() => {
+          bar.style.transition = 'width 0.4s ease';
+          bar.style.width = '70%';
+        });
+      };
+      window.finishNavProgress = function() {
+        bar.style.width = '100%';
+        setTimeout(() => {
+          bar.classList.remove('active');
+          bar.style.width = '0%';
+        }, 250);
+      };
+    })();
+
+    // Progress bar tipis: mulai saat navigasi, selesai saat render selesai
+    (function() {
+      const bar = document.getElementById('nav-progress');
+      window.startNavProgress = function() {
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        bar.classList.add('active');
+        requestAnimationFrame(() => {
+          bar.style.transition = 'width 0.4s ease';
+          bar.style.width = '70%';
+        });
+      };
+      window.finishNavProgress = function() {
+        bar.style.width = '100%';
+        setTimeout(() => {
+          bar.classList.remove('active');
+          bar.style.width = '0%';
+        }, 250);
+      };
+    })();
 
     function showLoginScreen() {
       // Sembunyikan UI aplikasi, tampilkan layar login
@@ -1195,6 +1315,19 @@
     }
 
     // Show Success/Error Alert
+    function markStaleData(isCached) {
+      const existing = document.getElementById('stale-banner');
+      if (existing) existing.remove();
+      if (isCached) {
+        const banner = document.createElement('div');
+        banner.id = 'stale-banner';
+        banner.className = 'alert alert-info fade-in';
+        banner.textContent = '⚡ Tampil instan dari data terakhir — menyegarkan di belakang...';
+        document.getElementById('content').prepend(banner);
+        setTimeout(() => banner.remove(), 2500);
+      }
+    }
+
     function showAlert(message, type = 'success') {
       const alerts = document.querySelectorAll('.alert');
       alerts.forEach(a => a.remove());
@@ -1204,6 +1337,12 @@
       alert.textContent = message;
       document.getElementById('content').prepend(alert);
       setTimeout(() => alert.remove(), 4000);
+
+      // Data berubah → buang snapshot halaman terkait supaya navigasi
+      // berikutnya render data segar (stale cache tidak tampil).
+      if (type === 'success') {
+        invalidatePageCache('dashboard', 'savings', 'transactions', 'students', 'attendance', 'classes', 'users');
+      }
     }
 
     // Modal Functions
@@ -1286,17 +1425,29 @@
     }
     
     // ==================== DASHBOARD ====================
-    function loadDashboard() {
-      showLoading();
-      // SATU panggilan untuk semua data dashboard (cepat — tanpa double-hop)
+    function loadDashboard(opts = {}) {
+      // Stale-while-revalidate: render instan dari snapshot terakhir,
+      // lalu data segar diambil di belakang (pull-to-refresh = {fresh:true}).
+      const cached = getPageCache('dashboard');
+      if (cached && !opts.fresh) {
+        renderDashboard(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderDashboard)
+        .withSuccessHandler((data) => {
+          setPageCache('dashboard', data);
+          renderDashboard(data);
+        })
         .withFailureHandler(handleError)
         .getDashboardData();
     }
 
-    function renderDashboard(data) {
+    function renderDashboard(data, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       
       const stats = data.stats;
       const savingsAccounts = data.savingsAccounts || [];
@@ -1307,7 +1458,10 @@
 
       const html = `
         <div class="fade-in">
-          <h2 style="margin-bottom:20px;">📊 Dashboard</h2>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">📊 Dashboard</h2>
+            <button class="btn btn-sm btn-outline" onclick="loadDashboard({fresh:true})" title="Tarik data terbaru dari server">🔄 Refresh</button>
+          </div>
           <p class="text-muted" style="margin-bottom:20px;">
             ${new Date(stats.lastUpdated).toLocaleDateString('id-ID', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -1606,15 +1760,26 @@
 
     // ==================== STUDENTS ====================
     function loadStudents() {
-      showLoading();
+      const cached = getPageCache('students');
+      if (cached) {
+        renderStudents(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderStudents)
+        .withSuccessHandler((students) => {
+          setPageCache('students', students);
+          renderStudents(students);
+        })
         .withFailureHandler(handleError)
         .getStudents();
     }
 
-    function renderStudents(students) {
+    function renderStudents(students, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       state.students = students;
 
       if (students.length === 0) {
@@ -1930,15 +2095,26 @@
 
     // ==================== CLASSES ====================
     function loadClasses() {
-      showLoading();
+      const cached = getPageCache('classes');
+      if (cached) {
+        renderClasses(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderClasses)
+        .withSuccessHandler((classes) => {
+          setPageCache('classes', classes);
+          renderClasses(classes);
+        })
         .withFailureHandler(handleError)
         .getClasses();
     }
 
-    function renderClasses(classes) {
+    function renderClasses(classes, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       state.classes = classes;
 
       if (classes.length === 0) {
@@ -2087,15 +2263,26 @@
 
     // ==================== ATTENDANCE ====================
     function loadAttendance() {
-      showLoading();
+      const cached = getPageCache('attendance');
+      if (cached) {
+        renderAttendance(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderAttendance)
+        .withSuccessHandler((data) => {
+          setPageCache('attendance', data);
+          renderAttendance(data);
+        })
         .withFailureHandler(handleError)
         .getAttendanceToday();
     }
 
-    function renderAttendance(todayAttendance) {
+    function renderAttendance(todayAttendance, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       state.students = state.students || [];
 
       document.getElementById('content').innerHTML = `
@@ -2234,13 +2421,35 @@
         notifyWhatsApp: document.getElementById('notifyWhatsApp').checked
       };
 
+      // ⚡ Optimistic UI: modal tertutup & absensi tampil < 0.1 dtk.
+      // Server konfirmasi menyusul; jika ditolak (mis. absensi dobel), baris dihapus otomatis.
+      const tempId = 'TMP-' + Date.now();
+      applyOptimistic('attendance', tempId, (list) => {
+        list.unshift({
+          id: tempId,
+          studentId: data.studentId,
+          tanggal: new Date().toISOString(),
+          status: data.status,
+          catatan: data.catatan
+        });
+      });
+      closeModal();
+      showAlert('⏳ Menyimpan absensi...', 'info');
+
       google.script.run
         .withSuccessHandler((result) => {
-          closeModal();
-          showAlert(result.message, result.success ? 'success' : 'error');
-          loadAttendance();
+          if (result.success) {
+            invalidatePageCache('attendance', 'dashboard');
+            showAlert(result.message, 'success');
+          } else {
+            removeOptimistic('attendance', tempId);
+            showAlert(result.message, 'error');
+          }
         })
-        .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
+        .withFailureHandler((err) => {
+          removeOptimistic('attendance', tempId);
+          showAlert('Error: ' + err.message, 'error');
+        })
         .recordAttendance(data);
     }
 
@@ -2314,10 +2523,14 @@
         guru: document.getElementById('progressGuru').value
       };
 
+      // ⚡ Optimistic: tutup modal segera; simpan berjalan di belakang
+      closeModal();
+      showAlert('⏳ Menyimpan progres...', 'info');
+
       google.script.run
         .withSuccessHandler((result) => {
-          closeModal();
-          showAlert(result.message, 'success');
+          showAlert(result.message, result.success ? 'success' : 'error');
+          if (result.success) invalidatePageCache('dashboard');
         })
         .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
         .addProgress(data);
@@ -2325,15 +2538,26 @@
 
     // ==================== SAVINGS ====================
     function loadSavings() {
-      showLoading();
+      const cached = getPageCache('savings');
+      if (cached) {
+        renderSavings(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderSavings)
+        .withSuccessHandler((accounts) => {
+          setPageCache('savings', accounts);
+          renderSavings(accounts);
+        })
         .withFailureHandler(handleError)
         .getSavingsAccounts();
     }
 
-    function renderSavings(accounts) {
+    function renderSavings(accounts, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       state.savingsAccounts = accounts || [];
 
       document.getElementById('content').innerHTML = `
@@ -2475,16 +2699,27 @@
 
     // ==================== TRANSACTIONS ====================
     function loadTransactions() {
-      showLoading();
+      const cached = getPageCache('transactions');
+      if (cached) {
+        renderTransactions(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       // Satu panggilan saja — nama murid sudah ikut dalam data transaksi
       google.script.run
-        .withSuccessHandler(renderTransactions)
+        .withSuccessHandler((transactions) => {
+          setPageCache('transactions', transactions);
+          renderTransactions(transactions);
+        })
         .withFailureHandler(handleError)
         .getAllTransactions();
     }
 
-    function renderTransactions(transactions) {
+    function renderTransactions(transactions, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
 
       document.getElementById('content').innerHTML = `
         <div class="fade-in">
@@ -2662,16 +2897,43 @@
         return;
       }
 
+      // Validasi cepat saldo (server tetap otoritas final)
+      const cachedSav = getPageCache('savings');
+      const acc = cachedSav ? cachedSav.find(a => a.id === savingsId) : null;
+      if (jenis === 'Penarikan' && acc && jumlah > Number(acc.balance)) {
+        showAlert('Saldo tidak cukup!', 'error');
+        return;
+      }
+
+      // ⚡ Optimistic UI: saldo & riwayat diperbarui < 0.1 dtk
+      window._txTempId = 'TMP-' + Date.now();
+      const expectedSaldo = acc ? Number(acc.balance) + (jenis === 'Setoran' ? jumlah : -jumlah) : jumlah;
+      applyOptimistic('savings', window._txTempId, (list) => {
+        const a = list.find(x => x.id === savingsId);
+        if (a) a.balance = expectedSaldo;
+      });
+      applyOptimistic('transactions', window._txTempId, (list) => {
+        const s = state.students.find(x => x.id === studentId);
+        list.unshift({ id: window._txTempId, studentId, savingsId, nama: s ? s.nama : '-', jenis, jumlah, saldoSetelah: expectedSaldo, catatan, tanggal: new Date().toISOString() });
+      });
+      closeModal();
+      showAlert('⏳ Memproses ' + jenis.toLowerCase() + '...', 'info');
+
       google.script.run
         .withSuccessHandler((result) => {
-          closeModal();
-          showAlert(result.message, result.success ? 'success' : 'error');
-          loadSavings();
           if (result.success) {
-            loadDashboard();
+            invalidatePageCache('savings', 'transactions', 'dashboard');
+          } else {
+            removeOptimistic('transactions', window._txTempId);
+            invalidatePageCache('savings');
           }
+          showAlert(result.message, result.success ? 'success' : 'error');
         })
-        .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
+        .withFailureHandler((err) => {
+          removeOptimistic('transactions', window._txTempId);
+          invalidatePageCache('savings');
+          showAlert('Error: ' + err.message, 'error');
+        })
         .addTransaction({
           studentId,
           savingsId,
@@ -2757,16 +3019,43 @@
         notifyWhatsApp: document.getElementById('quickNotifyWhatsApp').checked
       };
 
+      // Validasi cepat saldo (server tetap otoritas final)
+      const cachedSav = getPageCache('savings');
+      const acc = cachedSav ? cachedSav.find(a => a.id === data.savingsId) : null;
+      if (data.jenis === 'Penarikan' && acc && data.jumlah > Number(acc.balance)) {
+        showAlert('Saldo tidak cukup!', 'error');
+        return;
+      }
+
+      // ⚡ Optimistic UI: saldo & riwayat diperbarui < 0.1 dtk
+      window._txTempId = 'TMP-' + Date.now();
+      const expectedSaldo = acc ? Number(acc.balance) + (data.jenis === 'Setoran' ? data.jumlah : -data.jumlah) : data.jumlah;
+      applyOptimistic('savings', window._txTempId, (list) => {
+        const a = list.find(x => x.id === data.savingsId);
+        if (a) a.balance = expectedSaldo;
+      });
+      applyOptimistic('transactions', window._txTempId, (list) => {
+        const s = state.students.find(x => x.id === data.studentId);
+        list.unshift({ id: window._txTempId, studentId: data.studentId, savingsId: data.savingsId, nama: s ? s.nama : '-', jenis: data.jenis, jumlah: data.jumlah, saldoSetelah: expectedSaldo, catatan: data.catatan, tanggal: new Date().toISOString() });
+      });
+      closeModal();
+      showAlert('⏳ Memproses ' + data.jenis.toLowerCase() + '...', 'info');
+
       google.script.run
         .withSuccessHandler((result) => {
-          closeModal();
-          showAlert(result.message, result.success ? 'success' : 'error');
-          loadSavings();
           if (result.success) {
-            loadDashboard();
+            invalidatePageCache('savings', 'transactions', 'dashboard');
+          } else {
+            removeOptimistic('transactions', window._txTempId);
+            invalidatePageCache('savings');
           }
+          showAlert(result.message, result.success ? 'success' : 'error');
         })
-        .withFailureHandler((err) => showAlert('Error: ' + err.message, 'error'))
+        .withFailureHandler((err) => {
+          removeOptimistic('transactions', window._txTempId);
+          invalidatePageCache('savings');
+          showAlert('Error: ' + err.message, 'error');
+        })
         .addTransaction(data);
     }
 
@@ -2802,15 +3091,26 @@
 
     // ==================== USERS (KELOLA LOGIN) ====================
     function loadUsers() {
-      showLoading();
+      const cached = getPageCache('users');
+      if (cached) {
+        renderUsers(cached, true);
+      } else {
+        showLoading();
+      }
+      startNavProgress();
       google.script.run
-        .withSuccessHandler(renderUsers)
+        .withSuccessHandler((users) => {
+          setPageCache('users', users);
+          renderUsers(users);
+        })
         .withFailureHandler(handleError)
         .getUsers();
     }
 
-    function renderUsers(users) {
+    function renderUsers(users, isCached = false) {
       hideLoading();
+      finishNavProgress();
+      markStaleData(isCached);
       state.users = users || [];
 
       const rows = state.users.map((u, i) => `
